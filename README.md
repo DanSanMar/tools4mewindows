@@ -48,19 +48,23 @@ T4MW incluye un **sistema de temas dinámico**:
 
 ```bash
 cd tools4mewindows
-python t4mw.py```
+python t4mw.py
+```
 
 🛠️ Tecnologías Utilizadas
+
 Componente	Tecnología
 Lenguaje	Python
 Interfaz Gráfica	Tkinter
 Llamadas de Sistema	Librería ctypes y os para ejecución de comandos CMD y PowerShell
+
 ⚠️ Nota de Seguridad
 Este script ejecuta comandos que modifican archivos del sistema y registros de actualización. Se recomienda:
 
 ✅ Cerrar aplicaciones importantes antes de usar las herramientas de limpieza.
 ⏱️ Tener paciencia durante los procesos de SFC y DISM, ya que pueden tardar varios minutos.
 ⚖️ Responsabilidad: El autor no se hace responsable de un uso indebido de las herramientas.
+
 👤 Autor
 Desarrollado por DanSanMar.
 
