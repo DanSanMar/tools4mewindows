@@ -5,7 +5,23 @@ import tkinter as tk
 from tkinter import messagebox
 import subprocess
 
+# --- VERIFICACIÓN E INSTALACIÓN AUTOMÁTICA DE LIBRERÍAS ---
+# Comprueba si Pillow (para manejar JPG) está instalada. Si no, la instala sola.
+try:
+    from PIL import Image, ImageTk
+except ImportError:
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "pillow"])
+        from PIL import Image, ImageTk
+    except Exception as e:
+        # Si falla por problemas de red o permisos, usa tkinter estándar para avisar
+        root_err = tk.Tk()
+        root_err.withdraw()
+        messagebox.showerror("Error de Dependencias", f"Falta la librería 'pillow' para la imagen y no se pudo instalar automáticamente.\n\nError: {e}")
+        sys.exit()
+
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
 # --- CLASE PARA TOOLTIPS (EXPLICACIÓN) ---
 # Esta clase crea pequeñas ventanas flotantes de ayuda cuando pasas el ratón 
 # sobre un botón. Maneja eventos de entrada (<Enter>) y salida (<Leave>).
@@ -37,14 +53,11 @@ class Tooltip:
         tw.wm_geometry(f"+{x}+{y}")
         
         # Crear el contenido del tooltip
-        label = tk.Label(tw, text=self.texto, justify='left',
+        label = tk.Label(tw, text=self.texto, justify='center',
                          background="#2d3436", foreground="#ffffff",
                          relief='solid', borderwidth=1,
-                         font=("Segoe UI", "15", "normal"), padx=5, pady=3)
+                         font=("Segoe UI", "14", "normal"), padx=5, pady=3)
         label.pack()
-        
-        # Programar la destrucción automática si el ratón se queda quieto mucho tiempo (opcional, pero ayuda a evitar glitches)
-        # No es estrictamente necesario para el parpadeo, pero mejora la UX.
 
     def ocultar_tip(self, event=None):
         if self.tip_window:
@@ -114,6 +127,17 @@ try:
     app.geometry("600x850+500+20")
     app.resizable(True, True)
 
+    # --- CARGA DEL LOGO ALL4MEW ---
+    try:
+        img_path = "LogoALL4meW.png"
+        img_open = Image.open(img_path)
+        # Redimensionamos la imagen para que encaje bien en la cabecera
+        img_open = img_open.resize((230, 160), Image.Resampling.LANCZOS)
+        logo_img = ImageTk.PhotoImage(img_open)
+    except Exception as e:
+        logo_img = None
+        print(f"No se pudo cargar la imagen: {e}")
+
     tema_oscuro = False 
 
     # Función que cambia los colores de todos los elementos de la interfaz
@@ -136,16 +160,21 @@ try:
         # Aplicación de los colores a cada componente
         app.config(bg=bg_main)
         logo_frame.config(bg=bg_main)
-        lbl_logo_icon.config(bg=bg_main, fg=accent)
+        
+        # Lógica de colores para el logo (por si falla la imagen, usa el rayo)
+        if not logo_img:
+            lbl_logo_icon.config(text="⚡", bg=bg_main, fg=accent)
+        else:
+            lbl_logo_icon.config(image=logo_img, bg=bg_main)
+            lbl_logo_icon.image = logo_img # Referencia obligatoria en Tkinter
+
         lbl_logo_text.config(bg=bg_main, fg=fg_primary)
-        lbl_sub.config(bg=bg_main, fg=fg_secondary)
+        
         container.config(bg=bg_main)
         
         # Bucle para actualizar cada botón creado
         for btn in botones:
             btn.config(bg=btn_bg, fg=fg_primary, activebackground=btn_hover, activeforeground=fg_primary)
-            # CORRECCIÓN: Se eliminaron los bind manuales aquí para no interferir con el Tooltip
-            # Los eventos de hover los maneja ahora exclusivamente la clase Tooltip
             
         btn_tema.config(
             text="  MODO CLARO  " if tema_oscuro else "  MODO OSCURO  ",
@@ -162,14 +191,13 @@ try:
     logo_frame = tk.Frame(app, pady=30)
     logo_frame.pack(fill="x")
 
-    lbl_logo_icon = tk.Label(logo_frame, text="⚡", font=("Segoe UI", 32))
+    # Contenedor del icono/logo
+    lbl_logo_icon = tk.Label(logo_frame)
     lbl_logo_icon.pack()
     
-    lbl_logo_text = tk.Label(logo_frame, text="T O O L S 4 M E W", font=("Segoe UI", 22, "bold"))
+    lbl_logo_text = tk.Label(logo_frame, text="T O O L S 4 M E W - V.2", font=("Segoe UI", 22, "bold"))
     lbl_logo_text.pack()
 
-    lbl_sub = tk.Label(app, text="All4me Windows • V1.5", font=("Segoe UI", 9, "bold"))
-    lbl_sub.pack(pady=(0, 20))
 
     # Contenedor para los botones
     container = tk.Frame(app)
@@ -183,7 +211,7 @@ try:
         frame_btn.pack(fill="x", pady=5)
         
         full_text = f"  {icono}   {texto}"
-        btn = tk.Button(frame_btn, text=full_text, font=("Segoe UI Semibold", 15), 
+        btn = tk.Button(frame_btn, text=full_text, font=("Segoe UI Semibold", 14), 
                        anchor="w", padx=20, pady=10,
                        relief="flat", cursor="hand2", command=comando)
         btn.pack(fill="x")
