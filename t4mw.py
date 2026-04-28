@@ -3,7 +3,9 @@ import sys
 import ctypes
 import tkinter as tk
 from tkinter import messagebox
+import subprocess
 
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 # --- CLASE PARA TOOLTIPS (EXPLICACIÓN) ---
 # Esta clase crea pequeñas ventanas flotantes de ayuda cuando pasas el ratón 
 # sobre un botón. Maneja eventos de entrada (<Enter>) y salida (<Leave>).
@@ -12,34 +14,43 @@ class Tooltip:
         self.widget = widget
         self.texto = texto
         self.tip_window = None
-        self.widget.bind("<Enter>", self.mostrar_tip) # Al entrar el ratón
-        self.widget.bind("<Leave>", self.ocultar_tip) # Al salir el ratón
+        self.id = None
+        
+        # Bind de eventos
+        widget.bind("<Enter>", self.mostrar_tip)
+        widget.bind("<Leave>", self.ocultar_tip)
+        widget.bind("<ButtonPress>", self.ocultar_tip) # Ocultar si se hace clic
 
     def mostrar_tip(self, event=None):
+        # Si ya hay una ventana de tooltip o no hay texto, salir
         if self.tip_window or not self.texto:
             return
-        # Calcula la posición donde aparecerá la ventanita de ayuda
-        x = self.widget.winfo_rootx() + 20
-        y = self.widget.winfo_rooty() + 50
+            
+        # Calcular posición: Usamos winfo_rootx/y del widget
+        # Añadimos un pequeño offset para que no tape el botón
+        x = self.widget.winfo_rootx() + self.widget.winfo_width() + 10
+        y = self.widget.winfo_rooty() + 10
         
-        # Crea una ventana de nivel superior sin bordes (overrideredirect)
+        # Crear la ventana Toplevel
         self.tip_window = tw = tk.Toplevel(self.widget)
         tw.wm_overrideredirect(True)
         tw.wm_geometry(f"+{x}+{y}")
         
-        # El diseño visual del cuadro de ayuda
+        # Crear el contenido del tooltip
         label = tk.Label(tw, text=self.texto, justify='left',
                          background="#2d3436", foreground="#ffffff",
-                         relief='flat', borderwidth=0,
-                         font=("Segoe UI", "14", "normal"), padx=10, pady=6)
+                         relief='solid', borderwidth=1,
+                         font=("Segoe UI", "15", "normal"), padx=5, pady=3)
         label.pack()
+        
+        # Programar la destrucción automática si el ratón se queda quieto mucho tiempo (opcional, pero ayuda a evitar glitches)
+        # No es estrictamente necesario para el parpadeo, pero mejora la UX.
 
     def ocultar_tip(self, event=None):
-        tw = self.tip_window
-        self.tip_window = None
-        if tw:
-            tw.destroy()
-
+        if self.tip_window:
+            self.tip_window.destroy()
+            self.tip_window = None
+            
 # --- VERIFICACIÓN DE ADMINISTRADOR ---
 # Casi todas las tareas de mantenimiento de Windows requieren permisos elevados.
 def es_admin():
@@ -63,10 +74,10 @@ if not es_admin():
 
 # Función maestra para ejecutar comandos en el CMD de Windows de forma externa
 def ejecutar_externo(titulo, comando):
-    # 'start' abre una nueva ventana, 'cmd /c' ejecuta el comando y luego termina
-    # Se añade una pausa manual para que el usuario pueda ver el resultado antes de cerrar.
-    cmd_completo = f'start "{titulo}" cmd /c "{comando} & echo. & echo ======================================== & echo Tarea finalizada. Presiona cualquier tecla para cerrar. & pause >nul"'
-    os.system(cmd_completo)
+    # Usamos shell=True solo para comandos internos de CMD como 'del' o 'ipconfig'
+    # 'start' invoca una nueva ventana de forma limpia
+    proceso = f'title {titulo} && {comando} && pause'
+    subprocess.Popen(['start', 'cmd', '/c', proceso], shell=True)
 
 def actualizar_winget():
     # Usa el gestor de paquetes nativo de Windows para actualizar todas las apps instaladas
@@ -99,9 +110,9 @@ def liberar_ram():
 # --- INTERFAZ GRÁFICA (FRONTEND) ---
 try:
     app = tk.Tk()
-    app.title("T4MW - Utility Suite")
-    app.geometry("500x750+500+20")
-    app.resizable(False, False)
+    app.title("T4MW - All4me Group")
+    app.geometry("600x850+500+20")
+    app.resizable(True, True)
 
     tema_oscuro = False 
 
@@ -133,9 +144,8 @@ try:
         # Bucle para actualizar cada botón creado
         for btn in botones:
             btn.config(bg=btn_bg, fg=fg_primary, activebackground=btn_hover, activeforeground=fg_primary)
-            # Efecto hover (cambio de color al pasar el ratón)
-            btn.bind("<Enter>", lambda e, b=btn, h=btn_hover: b.config(bg=h))
-            btn.bind("<Leave>", lambda e, b=btn, o=btn_bg: b.config(bg=o))
+            # CORRECCIÓN: Se eliminaron los bind manuales aquí para no interferir con el Tooltip
+            # Los eventos de hover los maneja ahora exclusivamente la clase Tooltip
             
         btn_tema.config(
             text="  MODO CLARO  " if tema_oscuro else "  MODO OSCURO  ",
@@ -173,7 +183,7 @@ try:
         frame_btn.pack(fill="x", pady=5)
         
         full_text = f"  {icono}   {texto}"
-        btn = tk.Button(frame_btn, text=full_text, font=("Segoe UI Semibold", 11), 
+        btn = tk.Button(frame_btn, text=full_text, font=("Segoe UI Semibold", 15), 
                        anchor="w", padx=20, pady=10,
                        relief="flat", cursor="hand2", command=comando)
         btn.pack(fill="x")
@@ -181,17 +191,17 @@ try:
         Tooltip(btn, descripcion) # Asigna la ayuda flotante
 
     # --- DEFINICIÓN DE BOTONES ---
-    crear_boton_moderno("Actualizar Todo el Software", actualizar_winget, "Actualiza aplicaciones vía Winget.", "📦")
-    crear_boton_moderno("Limpiar Archivos Basura", limpiar_sistema, "Borra temporales y caché DNS.", "🧹")
-    crear_boton_moderno("Reparar Archivos del Sistema", reparar_sfc, "Ejecuta SFC /scannow.", "🛠")
-    crear_boton_moderno("Eliminar Residuos de Update", limpiar_updates, "Libera espacio de actualizaciones viejas.", "♻️")
-    crear_boton_moderno("Restaurar Imagen de Sistema", optimizar_imagen, "Repara la salud de la imagen DISM.", "🩺")
-    crear_boton_moderno("Optimizar Memoria RAM", liberar_ram, "Fuerza limpieza de memoria.", "🚀")
-    crear_boton_moderno("Reiniciar Windows Explorer", reiniciar_explorador, "Reinicia la interfaz de usuario.", "🔄")
+    crear_boton_moderno("Actualizar Todo el Software", actualizar_winget, "Actualiza las aplicaciones con Winget.", "📦")
+    crear_boton_moderno("Limpiar Archivos Basura", limpiar_sistema, "Borra archivos temporales y caché DNS.", "🧹")
+    crear_boton_moderno("Reparar Archivos del Sistema", reparar_sfc, "Ejecuta SFC /scannow para comprobar que no haya errores en el sistema.", "🛠")
+    crear_boton_moderno("Eliminar Residuos de Update", limpiar_updates, "Libera espacio de actualizaciones de Windows anteriores.", "♻️")
+    crear_boton_moderno("Restaurar Imagen de Sistema", optimizar_imagen, "Comprueba y repara la salud de la imagen DISM.", "🩺")
+    crear_boton_moderno("Optimizar Memoria RAM", liberar_ram, "Fuerza una limpieza de la memoria RAM.", "🚀")
+    crear_boton_moderno("Reiniciar Windows Explorer", reiniciar_explorador, "Reinicia la interfaz de usuario para evitar acumulación de errores.", "🔄")
 
     # Botón inferior para cambiar el tema
-    btn_tema = tk.Button(app, font=("Segoe UI", 12, "bold"), relief="flat", cursor="hand2", command=alternar_tema)
-    btn_tema.pack(pady=40)
+    btn_tema = tk.Button(app, font=("Segoe UI", 12, "bold"), relief="raised", cursor="hand2", command=alternar_tema)
+    btn_tema.pack(pady=20)
 
     # Iniciar la interfaz con el tema configurado
     aplicar_tema()
