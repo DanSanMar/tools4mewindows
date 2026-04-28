@@ -53,10 +53,17 @@ python t4mw.py
 
 🛠️ Tecnologías Utilizadas
 
-Componente	Tecnología
-Lenguaje	Python
-Interfaz Gráfica	Tkinter
-Llamadas de Sistema	Librería ctypes y os para ejecución de comandos CMD y PowerShell
+Componente: Lenguaje
+
+Tecnología: Python
+
+Componente: Interfaz Gráfica
+
+Tecnología: Tkinter
+
+Componente: Llamadas de Sistema
+
+Tecnología: Librerías ctypes y os
 
 ⚠️ Nota de Seguridad
 Este script ejecuta comandos que modifican archivos del sistema y registros de actualización. Se recomienda:
