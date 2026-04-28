@@ -46,10 +46,10 @@ T4MW incluye un **sistema de temas dinámico**:
 
 ### 🚀 Instalación y Ejecución
 
-
 ```bash
 cd tools4mewindows
-python t4mw.py
+python t4mw.py```
+
 🛠️ Tecnologías Utilizadas
 Componente	Tecnología
 Lenguaje	Python
