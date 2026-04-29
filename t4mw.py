@@ -20,7 +20,6 @@ except ImportError:
         messagebox.showerror("Error de Dependencias", f"Falta la librería 'pillow' para la imagen y no se pudo instalar automáticamente.\n\nError: {e}")
         sys.exit()
 
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 # --- CLASE PARA TOOLTIPS (EXPLICACIÓN) ---
 # Esta clase crea pequeñas ventanas flotantes de ayuda cuando pasas el ratón 
@@ -64,33 +63,58 @@ class Tooltip:
             self.tip_window.destroy()
             self.tip_window = None
             
-# --- VERIFICACIÓN DE ADMINISTRADOR ---
-# Casi todas las tareas de mantenimiento de Windows requieren permisos elevados.
+# --- VERIFICACIÓN DE ADMINISTRADOR MEJORADA ---
 def es_admin():
     try:
-        # Intenta verificar si el usuario actual tiene privilegios de Admin
         return ctypes.windll.shell32.IsUserAnAdmin()
     except:
         return False
 
-# Si no somos administradores, el script se re-lanza a sí mismo pidiendo permisos.
 if not es_admin():
     try:
-        # "runas" lanza el proceso pidiendo elevación de privilegios (UAC)
-        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, 1)
+        # Obtenemos la ruta absoluta del script actual
+        script_path = os.path.abspath(sys.argv[0])
+        # Intentamos elevar privilegios
+        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, f'"{script_path}"', None, 1)
         sys.exit()
     except Exception as e:
-        messagebox.showerror("Error de Permisos", f"No se pudo obtener permisos de administrador: {e}")
+        print(f"Error crítico al elevar privilegios: {e}")
+        input("Presiona Enter para salir...") # Esto evita que la consola se cierre
         sys.exit()
+
+# CAMBIO DE DIRECTORIO: Hazlo DESPUÉS de ser admin
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 # --- LÓGICA DE LAS HERRAMIENTAS (BACKEND) ---
 
 # Función maestra para ejecutar comandos en el CMD de Windows de forma externa
 def ejecutar_externo(titulo, comando):
-    # Usamos shell=True solo para comandos internos de CMD como 'del' o 'ipconfig'
-    # 'start' invoca una nueva ventana de forma limpia
-    proceso = f'title {titulo} && {comando} && pause'
-    subprocess.Popen(['start', 'cmd', '/c', proceso], shell=True)
+    logo_ascii = "### Tools4meW - V.2 ###" # Versión simplificada para evitar errores de escape
+    
+    # Construimos el comando de forma que sea una sola línea limpia para el CMD
+    # Usamos /K en lugar de /C si quieres que la ventana SE QUEDE ABIERTA aunque falle
+    script_cmd = (
+        f'title {titulo} && '
+        f'color 0b && '
+        f'echo {logo_ascii} && '
+        f'echo [+] Ejecutando: {titulo}... && '
+        f'echo ----------------------------------------- && '
+        f'{comando} && '
+        f'echo. && '
+        f'echo ----------------------------------------- && '
+        f'echo [!] Tarea finalizada. && '
+        f'pause'
+    )
+    
+    try:
+        # Usamos shell=True y pasamos el string directamente. 
+        # CREATE_NEW_CONSOLE es clave para que no herede la consola invisible (si existe)
+        subprocess.Popen(
+            ["cmd.exe", "/c", script_cmd],
+            creationflags=subprocess.CREATE_NEW_CONSOLE
+        )
+    except Exception as e:
+        messagebox.showerror("Error de Ejecución", f"No se pudo abrir la consola: {e}")
 
 def actualizar_winget():
     # Usa el gestor de paquetes nativo de Windows para actualizar todas las apps instaladas
