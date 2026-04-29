@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Entornos virtuales
+venv/
+ENV/
+env/
+.venv
+
+# Archivos de IDE y editores
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Archivos específicos de este proyecto
+# Si la imagen es un recurso local único y no quieres subirla a GitHub:
+LogoALL4meW.png
+
+# Archivos temporales de Windows (por si acaso se generan en la carpeta)
+*.tmp
+*.temp
+Thumbs.db
+desktop.ini
+
+# Logs (si llegas a añadirlos)
+*.log
