@@ -42,6 +42,8 @@ Abre una terminal (CMD o PowerShell) en la carpeta del proyecto y ejecuta uno de
 Esta opción muestra la ventana de comandos mientras se ejecutan las herramientas (útil para ver logs).
 
     pyinstaller --onefile --name "Tools4MeW" t4mw.py
+    --si falla prueba:
+    python -m PyInstaller --onefile --name "Tools4MeW" t4mw.py
 
 ### Opción B: Ejecutable Sin Ventana (Modo Oculto)
 
