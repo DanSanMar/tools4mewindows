@@ -4,6 +4,8 @@ import ctypes
 import tkinter as tk
 from tkinter import messagebox
 import subprocess
+import os
+import sys
 
 # --- VERIFICACIÓN E INSTALACIÓN AUTOMÁTICA DE LIBRERÍAS ---
 # Comprueba si Pillow (para manejar JPG) está instalada. Si no, la instala sola.
@@ -20,6 +22,19 @@ except ImportError:
         messagebox.showerror("Error de Dependencias", f"Falta la librería 'pillow' para la imagen y no se pudo instalar automáticamente.\n\nError: {e}")
         sys.exit()
 
+def resource_path(relative_path):
+    """ Obtiene la ruta absoluta de los recursos, compatible con PyInstaller """
+    try:
+        # PyInstaller crea una carpeta temporal y guarda la ruta en _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
+# Ahora usa la función para cargar tu imagen
+ruta_al_logo = resource_path("LogoALL4meW.png")
+# Ejemplo: self.logo = PhotoImage(file=ruta_al_logo)
 
 # --- CLASE PARA TOOLTIPS (EXPLICACIÓN) ---
 # Esta clase crea pequeñas ventanas flotantes de ayuda cuando pasas el ratón 
@@ -153,7 +168,7 @@ try:
 
     # --- CARGA DEL LOGO ALL4MEW ---
     try:
-        img_path = "LogoALL4meW.png"
+        img_path = resource_path("LogoALL4meW.png")
         img_open = Image.open(img_path)
         # Redimensionamos la imagen para que encaje bien en la cabecera
         img_open = img_open.resize((230, 160), Image.Resampling.LANCZOS)

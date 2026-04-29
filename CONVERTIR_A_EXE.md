@@ -45,19 +45,15 @@ Esta opción muestra la ventana de comandos mientras se ejecutan las herramienta
     --si falla prueba:
     python -m PyInstaller --onefile --name "Tools4MeW" t4mw.py
 
-### Opción B: Ejecutable Sin Ventana (Modo Oculto)
-
-Si prefieres que el programa se ejecute en segundo plano sin mostrar la ventana negra de CMD (ideal para herramientas de sistema), añade el flag `--noconsole` (o `--windowed`).
-
-**Nota:** Las herramientas internas abrirán sus propias ventanas de CMD, pero la ventana principal de Python no aparecerá.
-
-    pyinstaller --onefile --noconsole --name "Tools4MeW" t4mw.py
 
 ### Opción C: Con Icono Personalizado (Recomendado)
 
 Para asignar un icono al ejecutable final:
 
     pyinstaller --onefile --noconsole --icon="logo.ico" --name "Tools4MeW" t4mw.py
+    -- si falla prueba:
+    python -m PyInstaller --onefile --windowed --add-data "LogoALL4meW.png;." --name "Tools4MeW" t4mw.py
+
 
 (Reemplaza `"logo.ico"` con la ruta real de tu archivo de icono).
 
