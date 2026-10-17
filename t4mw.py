@@ -1,11 +1,19 @@
 import os
 import sys
 import ctypes
+import logging
 import tkinter as tk
 from tkinter import messagebox
 import subprocess
-import os
-import sys
+
+# --- LOGGING A ARCHIVO TEMPORAL (útil cuando se ejecuta como .exe sin consola) ---
+log_path = os.path.join(os.environ.get("TEMP", "."), "t4mw.log")
+logging.basicConfig(
+    filename=log_path,
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s",
+)
+logging.info("Iniciando T4MW")
 
 # --- VERIFICACIÓN E INSTALACIÓN AUTOMÁTICA DE LIBRERÍAS ---
 # Comprueba si Pillow (para manejar JPG) está instalada. Si no, la instala sola.
@@ -121,6 +129,7 @@ def ejecutar_externo(titulo, comando):
         f'pause'
     )
     
+    logging.info(f"Ejecutando: {titulo} -> {comando}")
     try:
         # Usamos shell=True y pasamos el string directamente. 
         # CREATE_NEW_CONSOLE es clave para que no herede la consola invisible (si existe)
@@ -129,6 +138,7 @@ def ejecutar_externo(titulo, comando):
             creationflags=subprocess.CREATE_NEW_CONSOLE
         )
     except Exception as e:
+        logging.error(f"Error ejecutando {titulo}: {e}")
         messagebox.showerror("Error de Ejecución", f"No se pudo abrir la consola: {e}")
 
 def actualizar_winget():
