@@ -1,2 +1,0 @@
-Session   AGENTS.md setup for tools4mewindows
-  Continue  opencode -s ses_eb45b6b38ffecOcFZwsGJ9Brbz
