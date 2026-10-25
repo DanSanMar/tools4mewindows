@@ -6,7 +6,7 @@ Este documento explica cómo transformar `t4mw.py` en un ejecutable independient
 
 Antes de comenzar, asegúrate de tener:
 
-1. **Windows 10 u 11**. El ejecutable debe compilarse en Windows: PyInstaller no genera `.exe` desde Linux o macOS, y el script llama a herramientas del sistema (`winget`, `sfc`, `dism`, `powershell`).
+1. **Windows 10 u 11**. El ejecutable debe compilarse en Windows: PyInstaller no genera `.exe` desde Linux o macOS, y el script llama a herramientas del sistema (`winget`, `sfc`, `dism`, `chkdsk`, `powershell`).
 2. **Python 3.8 o superior**.
 3. **Git** (opcional, para clonar el repositorio).
 
@@ -52,7 +52,7 @@ Desde la carpeta del proyecto:
 pyinstaller Tools4MeW.spec
 ```
 
-La especificación genera un ejecutable único (`--onefile`), con el icono personalizado, el PNG embebido y `console=True`. Mantener la consola es intencionado: ahí se ve el progreso de SFC y DISM.
+La especificación genera un ejecutable único (`--onefile`), con el icono personalizado, el PNG embebido y `console=True`. Mantener la consola es intencionado: ahí se ve el progreso de SFC, DISM y chkdsk.
 
 ### Método manual
 
@@ -71,7 +71,7 @@ python -m PyInstaller --onefile --name "Tools4MeW" --icon "LogoALL4meW.ico" --ad
 Notas:
 
 - En Windows, el separador de `--add-data` es `;`. En Linux/macOS sería `:`.
-- Si añades `--noconsole` o `--windowed`, el ejecutable no mostrará la salida de SFC/DISM. El log seguirá escribiéndose en `%TEMP%\t4mw.log`.
+- Si añades `--noconsole` o `--windowed`, el ejecutable no mostrará la salida de SFC/DISM/chkdsk. El log seguirá escribiéndose en `%TEMP%\t4mw.log`.
 
 ---
 
@@ -83,7 +83,7 @@ Una vez finalizado el proceso (puede tardar unos minutos):
 - Encontrarás `Tools4MeW.exe`.
 - Haz doble clic para probarlo.
 
-**Nota importante:** el script incluye una comprobación de administrador. Al ejecutar el `.exe`, Windows pedirá permiso de administrador (UAC). Acéptalo para que SFC, DISM y el resto de herramientas funcionen correctamente.
+**Nota importante:** el script incluye una comprobación de administrador. Al ejecutar el `.exe`, Windows pedirá permiso de administrador (UAC). Acéptalo para que SFC, DISM, chkdsk y el resto de herramientas funcionen correctamente.
 
 ---
 
@@ -95,7 +95,7 @@ Una vez finalizado el proceso (puede tardar unos minutos):
 | La imagen no carga en el `.exe` | Usa `Tools4MeW.spec` o añade `--add-data "LogoALL4meW.png;."` al comando manual. |
 | El antivirus bloquea el `.exe` | Es habitual que marque como falso positivo herramientas que ejecutan comandos del sistema. Añade una exclusión temporal para probar. |
 | El script pide permisos de administrador | Es intencionado: se reinicia con privilegios elevados si no se ejecuta como admin. |
-| No se ve la salida de SFC o DISM | Compila con `console=True` (la especificación ya lo hace) o revisa `%TEMP%\t4mw.log`. |
+| No se ve la salida de SFC, DISM o chkdsk | Compila con `console=True` (la especificación ya lo hace) o revisa `%TEMP%\t4mw.log`. |
 | `winget` no se reconoce | Actualiza **App Installer** desde Microsoft Store. |
 
 ---

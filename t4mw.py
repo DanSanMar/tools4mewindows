@@ -7,7 +7,7 @@ from tkinter import messagebox
 import subprocess
 import shutil
 
-VERSION = "V.2.1"
+VERSION = "V.3"
 
 # --- LOGGING A ARCHIVO TEMPORAL (útil cuando se ejecuta como .exe sin consola) ---
 log_path = os.path.join(os.environ.get("TEMP", "."), "t4mw.log")
@@ -120,37 +120,115 @@ logging.info("Ejecutando como administrador en %s", os.getcwd())
 
 # --- LÓGICA DE LAS HERRAMIENTAS (BACKEND) ---
 
-# Función maestra para ejecutar comandos en el CMD de Windows de forma externa
-def ejecutar_externo(titulo, comando):
-    logo_ascii = f"### Tools4meW - {VERSION} ###" # Versión simplificada para evitar errores de escape
-    
-    # Construimos el comando como una sola línea para CMD. Usamos '&' (no '&&')
-    # para que la pausa final se ejecute también cuando el comando falla.
-    script_cmd = (
-        f'title {titulo} & '
-        f'color 0b & '
-        f'echo {logo_ascii} & '
-        f'echo [+] Ejecutando: {titulo}... & '
-        f'echo ----------------------------------------- & '
-        f'{comando} & '
-        f'echo. & '
-        f'echo ----------------------------------------- & '
-        f'echo [!] Tarea finalizada. & '
-        f'pause'
-    )
+# Paleta del tema actual, para que los diálogos hereden los colores
+TEMA_ACTUAL = {}
 
-    logging.info("Ejecutando: %s -> %s", titulo, comando)
+def comando_powershell(codigo):
+    """Envuelve código PowerShell en un comando de una línea para CMD."""
+    # El código no debe contener comillas dobles; usa comillas simples dentro.
+    if '"' in codigo:
+        raise ValueError("El código PowerShell no debe contener comillas dobles")
+    return f'powershell -NoProfile -Command "{codigo}"'
+
+def elegir_opcion(titulo, mensaje, opciones):
+    """Muestra un diálogo modal con varias opciones y devuelve el valor elegido."""
+    ventana = tk.Toplevel(app)
+    ventana.title(titulo)
     try:
-        # Se pasa una sola cadena para que CMD interprete correctamente las
-        # comillas internas (por ejemplo, rutas con espacios). /d evita AutoRun.
-        # CREATE_NEW_CONSOLE es clave para que no herede la consola invisible.
+        ventana.iconbitmap(resource_path("LogoALL4meW.ico"))
+    except Exception:
+        pass
+    ventana.transient(app)
+    ventana.resizable(False, False)
+
+    bg = TEMA_ACTUAL.get("bg", "#f1f5f9")
+    fg = TEMA_ACTUAL.get("fg", "#0f172a")
+    btn_bg = TEMA_ACTUAL.get("btn", "#e2e8f0")
+    btn_hover = TEMA_ACTUAL.get("btn_hover", "#cbd5e1")
+    ventana.config(bg=bg)
+
+    contenido = tk.Frame(ventana, bg=bg, padx=20, pady=20)
+    contenido.pack(fill="both", expand=True)
+
+    tk.Label(
+        contenido, text=mensaje, bg=bg, fg=fg, justify="left",
+        wraplength=430, font=("Segoe UI", 11),
+    ).pack(pady=(0, 15))
+
+    resultado = {"valor": None}
+
+    def elegir(valor):
+        resultado["valor"] = valor
+        ventana.destroy()
+
+    for texto, valor in opciones:
+        tk.Button(
+            contenido, text=texto, command=lambda v=valor: elegir(v),
+            font=("Segoe UI Semibold", 11), anchor="w", padx=12, pady=8,
+            bg=btn_bg, fg=fg, activebackground=btn_hover, activeforeground=fg,
+            relief="flat", cursor="hand2",
+        ).pack(fill="x", pady=3)
+
+    ventana.bind("<Escape>", lambda e: ventana.destroy())
+    ventana.protocol("WM_DELETE_WINDOW", ventana.destroy)
+
+    ventana.update_idletasks()
+    x = app.winfo_rootx() + (app.winfo_width() - ventana.winfo_reqwidth()) // 2
+    y = app.winfo_rooty() + (app.winfo_height() - ventana.winfo_reqheight()) // 2
+    ventana.geometry(f"+{max(x, 0)}+{max(y, 0)}")
+
+    # El grab necesita que la ventana ya esté visible.
+    ventana.wait_visibility()
+    ventana.grab_set()
+    ventana.focus_set()
+    ventana.wait_window()
+    return resultado["valor"]
+
+def construir_script(titulo, pasos):
+    """Construye una línea de CMD con varios pasos numerados."""
+    logo_ascii = f"### Tools4meW - {VERSION} ###"
+    partes = [
+        f"title {titulo}",
+        "color 0b",
+        f"echo {logo_ascii}",
+        "echo -----------------------------------------",
+    ]
+
+    total = len(pasos)
+    for indice, (etiqueta, comando) in enumerate(pasos, 1):
+        partes.append(f"echo [{indice}/{total}] {etiqueta}...")
+        partes.append(comando)
+        partes.append("echo.")
+
+    partes.extend([
+        "echo -----------------------------------------",
+        "echo [!] Tarea finalizada.",
+        "pause",
+    ])
+    return " & ".join(partes)
+
+def ejecutar_secuencia(titulo, pasos):
+    """Abre una consola nueva y ejecuta los pasos en orden."""
+    script_cmd = construir_script(titulo, pasos)
+
+    logging.info("Ejecutando: %s", titulo)
+    for etiqueta, comando in pasos:
+        logging.info("  [%s] %s", etiqueta, comando)
+
+    try:
+        # Una sola cadena para que CMD interprete bien las comillas internas.
+        # /d evita AutoRun y CREATE_NEW_CONSOLE da una ventana independiente.
         subprocess.Popen(
             f'cmd.exe /d /c {script_cmd}',
             creationflags=subprocess.CREATE_NEW_CONSOLE
         )
     except Exception as e:
-        logging.error(f"Error ejecutando {titulo}: {e}")
+        logging.exception("Error ejecutando %s", titulo)
         messagebox.showerror("Error de Ejecución", f"No se pudo abrir la consola: {e}")
+
+def ejecutar_externo(titulo, comando):
+    """Atajo para lanzar un único comando en una consola."""
+    ejecutar_secuencia(titulo, [(titulo, comando)])
 
 def confirmar(titulo, mensaje):
     # Pide confirmación antes de una acción larga o destructiva
@@ -166,67 +244,187 @@ def actualizar_winget():
             "Instala o actualiza 'App Installer' desde Microsoft Store y vuelve a intentarlo.",
         )
         return
-    ejecutar_externo("Actualizando Software (Winget)", "winget upgrade --all --include-unknown --accept-package-agreements --accept-source-agreements")
+    ejecutar_externo(
+        "Actualizando Software con Winget",
+        "winget upgrade --all --include-unknown --accept-package-agreements --accept-source-agreements",
+    )
 
 def limpiar_sistema():
-    # flushdns: limpia la caché de red. del /q: borra archivos temporales del usuario y del sistema
+    modo = elegir_opcion(
+        "Limpiar sistema",
+        "Elige el tipo de limpieza:\n\n"
+        "• Rápida: temporales del usuario y de Windows, y caché DNS (1-2 min).\n"
+        "• Completa: añade la limpieza de componentes de Windows con DISM (10-30 min).\n\n"
+        "No se toca la papelera de reciclaje ni tus documentos.",
+        [
+            ("Limpieza rápida", "rapida"),
+            ("Limpieza completa", "completa"),
+            ("Cancelar", None),
+        ],
+    )
+    if modo is None:
+        logging.info("Limpieza cancelada por el usuario")
+        return
+
+    logging.info("Modo de limpieza: %s", modo)
+    pasos = [
+        (
+            "Limpiando temporales del usuario",
+            comando_powershell(
+                "Get-ChildItem -LiteralPath $env:TEMP -Force -ErrorAction SilentlyContinue | "
+                "Where-Object { $_.Name -notlike '_MEI*' -and $_.Name -ne 't4mw.log' } | "
+                "Remove-Item -Recurse -Force -ErrorAction SilentlyContinue"
+            ),
+        ),
+        (
+            "Limpiando temporales de Windows",
+            comando_powershell(
+                "Get-ChildItem -LiteralPath (Join-Path $env:WINDIR 'Temp') -Force -ErrorAction SilentlyContinue | "
+                "Where-Object { $_.Name -notlike '_MEI*' -and $_.Name -ne 't4mw.log' } | "
+                "Remove-Item -Recurse -Force -ErrorAction SilentlyContinue"
+            ),
+        ),
+        ("Vaciando cache DNS", "ipconfig /flushdns"),
+    ]
+
+    if modo == "completa":
+        pasos.append((
+            "Limpiando componentes de Windows con DISM",
+            "dism /online /cleanup-image /startcomponentcleanup",
+        ))
+
+    titulo = "Limpieza rapida" if modo == "rapida" else "Limpieza completa"
+    ejecutar_secuencia(titulo, pasos)
+
+def reparar_windows():
     if not confirmar(
-        "Limpiar archivos basura",
-        "Se eliminarán los archivos temporales del usuario y del sistema, "
-        "y se vaciará la caché DNS.\n\n¿Quieres continuar?",
+        "Reparar Windows",
+        "Se ejecutará DISM /RestoreHealth y después SFC /scannow.\n\n"
+        "Puede tardar entre 20 y 60 minutos, conviene tener conexión a Internet "
+        "y no se debe cerrar la consola. Si quieres, crea antes un punto de "
+        "restauración desde Herramientas.\n\n¿Quieres continuar?",
     ):
         return
-    ejecutar_externo("Limpieza de Temporales y DNS", 'ipconfig /flushdns & del /q /f /s "%temp%\\*" & del /q /f /s "C:\\Windows\\Temp\\*"')
 
-def reparar_sfc():
-    # System File Checker: busca y repara archivos corruptos de Windows
+    ejecutar_secuencia("Reparar Windows", [
+        ("Reparando la imagen del sistema con DISM", "dism /online /cleanup-image /restorehealth"),
+        ("Comprobando archivos del sistema con SFC", "sfc /scannow"),
+    ])
+
+def diagnostico():
+    modo = elegir_opcion(
+        "Diagnóstico",
+        "Elige el nivel de diagnóstico:\n\n"
+        "• Rápido: estado de la imagen de Windows, discos y Defender (1-3 min).\n"
+        "• Completo: añade análisis del almacén de componentes y escaneo del disco C: (5-20 min).\n\n"
+        "Solo lectura: no modifica nada.",
+        [
+            ("Diagnóstico rápido", "rapido"),
+            ("Diagnóstico completo", "completo"),
+            ("Cancelar", None),
+        ],
+    )
+    if modo is None:
+        logging.info("Diagnostico cancelado por el usuario")
+        return
+
+    logging.info("Modo de diagnostico: %s", modo)
+    pasos = [
+        (
+            "Comprobando la imagen de Windows con DISM",
+            "dism /online /cleanup-image /checkhealth",
+        ),
+        (
+            "Consultando discos y espacio",
+            comando_powershell(
+                "Get-PhysicalDisk | Format-List FriendlyName,HealthStatus,OperationalStatus; "
+                "Get-Volume | Select-Object DriveLetter,FileSystemLabel,"
+                "@{n='LibreGB';e={[math]::Round($_.SizeRemaining/1GB,1)}},"
+                "@{n='TotalGB';e={[math]::Round($_.Size/1GB,1)}} | Format-Table -AutoSize"
+            ),
+        ),
+        (
+            "Consultando estado de Defender",
+            comando_powershell(
+                "try { Get-MpComputerStatus | Format-List "
+                "AntivirusEnabled,RealTimeProtectionEnabled,AntivirusSignatureLastUpdated } "
+                "catch { Write-Host 'Defender no disponible' }"
+            ),
+        ),
+    ]
+
+    if modo == "completo":
+        pasos.insert(1, (
+            "Analizando el almacen de componentes con DISM",
+            "dism /online /cleanup-image /analyzecomponentstore",
+        ))
+        pasos.append((
+            "Escaneando el disco C: con chkdsk",
+            "chkdsk C: /scan",
+        ))
+
+    titulo = "Diagnostico rapido" if modo == "rapido" else "Diagnostico completo"
+    ejecutar_secuencia(titulo, pasos)
+
+def crear_punto_restauracion():
     if not confirmar(
-        "Reparar archivos del sistema",
-        "SFC /scannow puede tardar entre 10 y 30 minutos. "
-        "No cierres la consola hasta que termine.\n\n¿Quieres continuar?",
+        "Crear punto de restauración",
+        "Se creará un punto de restauración de Windows. Requiere que la "
+        "Protección del sistema esté activada; Windows puede limitar la "
+        "frecuencia a un punto cada 24 horas.\n\n¿Quieres continuar?",
     ):
         return
-    ejecutar_externo("Escaneo y Reparacion (SFC)", "sfc /scannow")
 
-def limpiar_updates():
-    # DISM: Elimina archivos antiguos de actualizaciones de Windows que ya no son necesarios
+    ejecutar_externo(
+        "Punto de restauracion",
+        comando_powershell(
+            "Checkpoint-Computer -Description 'T4MW - mantenimiento' "
+            "-RestorePointType MODIFY_SETTINGS"
+        ),
+    )
+
+def analizar_defender():
     if not confirmar(
-        "Eliminar residuos de Update",
-        "DISM eliminará componentes antiguos de Windows Update y puede tardar varios minutos.\n\n"
+        "Análisis rápido de Defender",
+        "Se actualizarán las firmas y se ejecutará un análisis rápido de "
+        "Windows Defender. Si usas otro antivirus, puede no estar disponible.\n\n"
         "¿Quieres continuar?",
     ):
         return
-    ejecutar_externo("Limpieza de Actualizaciones (DISM)", "dism /online /cleanup-image /startcomponentcleanup")
 
-def optimizar_imagen():
-    # Compara tu Windows con una copia en la nube de Microsoft para reparar errores graves
-    if not confirmar(
-        "Restaurar imagen de sistema",
-        "DISM restaurará la imagen del sistema y puede tardar bastante. "
-        "En algunos casos requiere conexión a Internet.\n\n¿Quieres continuar?",
-    ):
+    ejecutar_secuencia("Analisis rapido de Defender", [
+        ("Actualizando firmas de Defender", comando_powershell("Update-MpSignature")),
+        ("Ejecutando analisis rapido", comando_powershell("Start-MpScan -ScanType QuickScan")),
+    ])
+
+def abrir_windows_update():
+    try:
+        os.startfile("ms-settings:windowsupdate")
+        logging.info("Abriendo Windows Update")
+    except Exception as e:
+        logging.exception("No se pudo abrir Windows Update")
+        messagebox.showerror(
+            "Windows Update",
+            f"No se pudo abrir la configuración de Windows Update:\n\n{e}",
+        )
+
+def abrir_log():
+    if not os.path.exists(log_path):
+        messagebox.showinfo("Log", "Todavía no hay ningún registro.")
         return
-    ejecutar_externo("Reparar Imagen de Sistema (DISM)", "dism /online /cleanup-image /restorehealth")
 
-def reiniciar_explorador():
-    # Mata el proceso de la barra de tareas y carpetas, y lo vuelve a iniciar para refrescar el sistema
-    if not confirmar(
-        "Reiniciar Windows Explorer",
-        "Se cerrará y reiniciará el Explorador de Windows. La barra de tareas parpadeará "
-        "y se cerrarán las ventanas de carpetas abiertas.\n\n¿Quieres continuar?",
-    ):
-        return
-    ejecutar_externo("Reiniciando Explorador", "taskkill /f /im explorer.exe & start explorer.exe")
-
-def liberar_ram():
-    # Llama al "Garbage Collector" (Recolector de basura) del sistema para intentar liberar memoria
-    ejecutar_externo("Liberando Memoria RAM", "powershell -command \"[System.GC]::Collect();\"")
+    try:
+        os.startfile(log_path)
+        logging.info("Abriendo el log: %s", log_path)
+    except Exception as e:
+        logging.exception("No se pudo abrir el log")
+        messagebox.showerror("Log", f"No se pudo abrir el archivo de log:\n\n{e}")
 
 # --- INTERFAZ GRÁFICA (FRONTEND) ---
 try:
     app = tk.Tk()
     app.title(f"T4MW - All4me Group ({VERSION})")
-    app.geometry("600x850+500+20")
+    app.geometry("600x650+500+20")
     app.resizable(True, True)
 
     # Icono de la ventana (el .exe ya lo lleva, pero así también se ve al ejecutar el .py)
@@ -234,6 +432,17 @@ try:
         app.iconbitmap(resource_path("LogoALL4meW.ico"))
     except Exception as e:
         logging.warning("No se pudo cargar el icono: %s", e)
+
+    # --- MENÚ DE HERRAMIENTAS ---
+    menubar = tk.Menu(app)
+    menu_herramientas = tk.Menu(menubar, tearoff=0)
+    menu_herramientas.add_command(label="Crear punto de restauración", command=crear_punto_restauracion)
+    menu_herramientas.add_command(label="Análisis rápido de Defender", command=analizar_defender)
+    menu_herramientas.add_separator()
+    menu_herramientas.add_command(label="Abrir Windows Update", command=abrir_windows_update)
+    menu_herramientas.add_command(label="Abrir log", command=abrir_log)
+    menubar.add_cascade(label="Herramientas", menu=menu_herramientas)
+    app.config(menu=menubar)
 
     # --- CARGA DEL LOGO ALL4MEW ---
     try:
@@ -264,6 +473,15 @@ try:
             accent = "#0284c7"
             btn_bg = "#e2e8f0"
             btn_hover = "#cbd5e1"
+
+        # Guardamos la paleta para que los diálogos modales la usen
+        TEMA_ACTUAL.update({
+            "bg": bg_main,
+            "fg": fg_primary,
+            "btn": btn_bg,
+            "btn_hover": btn_hover,
+            "accent": accent,
+        })
 
         # Aplicación de los colores a cada componente
         app.config(bg=bg_main)
@@ -331,13 +549,10 @@ try:
         Tooltip(btn, descripcion) # Asigna la ayuda flotante
 
     # --- DEFINICIÓN DE BOTONES ---
-    crear_boton_moderno("Actualizar Todo el Software", actualizar_winget, "Actualiza las aplicaciones con Winget.", "📦")
-    crear_boton_moderno("Limpiar Archivos Basura", limpiar_sistema, "Borra archivos temporales y caché DNS.", "🧹")
-    crear_boton_moderno("Reparar Archivos del Sistema", reparar_sfc, "Ejecuta SFC /scannow para comprobar que no haya errores en el sistema.", "🛠")
-    crear_boton_moderno("Eliminar Residuos de Update", limpiar_updates, "Libera espacio de actualizaciones de Windows anteriores.", "♻️")
-    crear_boton_moderno("Restaurar Imagen de Sistema", optimizar_imagen, "Comprueba y repara la salud de la imagen DISM.", "🩺")
-    crear_boton_moderno("Optimizar Memoria RAM", liberar_ram, "Fuerza una limpieza de la memoria RAM.", "🚀")
-    crear_boton_moderno("Reiniciar Windows Explorer", reiniciar_explorador, "Reinicia la interfaz de usuario para evitar acumulación de errores.", "🔄")
+    crear_boton_moderno("Actualizar Todo el Software", actualizar_winget, "Actualiza las aplicaciones instaladas con Winget.", "📦")
+    crear_boton_moderno("Limpiar Sistema", limpiar_sistema, "Limpieza rápida (temporales y DNS) o completa (incluye DISM).", "🧹")
+    crear_boton_moderno("Reparar Windows", reparar_windows, "Ejecuta DISM /RestoreHealth y SFC /scannow.", "🛠")
+    crear_boton_moderno("Diagnóstico", diagnostico, "Comprueba Windows, los discos y Defender sin modificar nada.", "🩺")
 
     # Botón inferior para cambiar el tema
     btn_tema = tk.Button(app, font=("Segoe UI", 12, "bold"), relief="raised", cursor="hand2", command=alternar_tema)

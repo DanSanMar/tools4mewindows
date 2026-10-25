@@ -4,10 +4,11 @@
 Single-file Python Tkinter GUI for Windows system maintenance. The only source file is `t4mw.py`; the docs are `README.md`, `CONVERTIR_A_EXE.md`, and `PRUEBAS.md`. There are no packages, automated tests, CI, lint, or typecheck. Dependencies are listed by name in `requirements.txt` (`pillow`, `pyinstaller`); there are no pins. Do not invent test/lint/build-tool commands.
 
 ## Run
-- `python t4mw.py` — Windows 10/11 only. It calls Windows-only tools (`winget`, `cmd.exe`, `sfc`, `dism`, `powershell`, `taskkill`) and is not meaningful on Linux/macOS.
+- `python t4mw.py` — Windows 10/11 only. It calls Windows-only tools (`winget`, `cmd.exe`, `sfc`, `dism`, `chkdsk`, `powershell`) and is not meaningful on Linux/macOS.
 - Requires Administrator; the script auto-elevates via UAC (`ctypes.shell32.ShellExecuteW` with `runas`), then `os.chdir`s to the script directory.
 - Dependency: `pillow` (PIL). The script auto-installs it at runtime via `pip install pillow` if missing — requires network. Pre-install with `pip install -r requirements.txt` (this also installs PyInstaller).
 - Logs to `%TEMP%\t4mw.log`.
+- Main actions: update (winget), clean (quick/complete), repair (DISM + SFC), diagnose (quick/complete). Secondary tools live in the native "Herramientas" menu.
 
 ## Build `.exe`
 - Canonical: `pyinstaller Tools4MeW.spec` (icon `LogoALL4meW.ico`, `console=True`, embeds `LogoALL4meW.png`, output name `Tools4MeW`).
@@ -19,10 +20,13 @@ Single-file Python Tkinter GUI for Windows system maintenance. The only source f
 
 ## Docs
 - `README.md` covers features and installation; `CONVERTIR_A_EXE.md` covers packaging; `PRUEBAS.md` is the manual checklist for validating a release on Windows. Keep them in sync when behavior changes.
-- The version is defined once in `VERSION` (`t4mw.py`) and used in the window title, header, and console banner. Keep the README badge in sync.
+- The version is defined once in `VERSION` (`t4mw.py`) and used in the window title, header, and console banner. Current version: V.3. Keep the README badge in sync.
 
 ## Gotchas
 - `LogoALL4meW.png` is tracked in git even though `.gitignore` lists it; `.gitignore` does not affect already-tracked files.
 - Admin elevation restarts the process with `runas` using `sys.argv[0]`; paths resolved after elevation are relative to the script file.
 - The Pillow auto-install is not reliable inside a PyInstaller `.exe`; PyInstaller bundles the dependency at build time, so install it before building.
-- SFC/DISM can take several minutes; the launched console stays open with `pause`.
+- The temp-cleanup step must keep excluding `_MEI*` and `t4mw.log`: `_MEI*` is the running onefile bundle, and the log is open. Do not replace it with a blanket `del "%TEMP%\*"`.
+- `DISM /StartComponentCleanup` removes superseded components; do not add `/ResetBase`, which would prevent uninstalling all updates.
+- The RAM GC and Explorer restart actions were removed on purpose. Do not reintroduce them without a concrete reason.
+- SFC/DISM/chkdsk can take several minutes; the launched console stays open with `pause`.

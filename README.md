@@ -3,7 +3,7 @@
 
 **T4MW (Tools4me Windows)** es una suite de mantenimiento ligera y potente escrita en Python. Está diseñada para centralizar las tareas de optimización más comunes de Windows en una interfaz gráfica moderna, intuitiva y fácil de usar, eliminando la necesidad de recordar comandos complejos de la terminal.
 
-![Versión](https://img.shields.io/badge/Versi%C3%B3n-V.2.1-blue)
+![Versión](https://img.shields.io/badge/Versi%C3%B3n-V.3-blue)
 ![Python](https://img.shields.io/badge/Python-3.x-green)
 ![OS](https://img.shields.io/badge/OS-Windows-informational)
 ![Licencia](https://img.shields.io/badge/Licencia-MIT-yellow)
@@ -12,17 +12,32 @@
 
 ## ✨ Características principales
 
-El script integra las herramientas más eficaces de diagnóstico y limpieza de Windows:
+El menú principal se reduce a cuatro acciones claras:
 
 * **📦 Actualizar todo el software**: usa el gestor `winget` para buscar y aplicar actualizaciones de todas tus aplicaciones instaladas de forma masiva.
-* **🧹 Limpiar archivos basura**: elimina archivos temporales del usuario y del sistema, y limpia la caché DNS para resolver problemas de red.
-* **🛠 Reparar archivos del sistema**: ejecuta `sfc /scannow` para verificar la integridad de los archivos de Windows.
-* **♻️ Eliminar residuos de Update**: usa `DISM` para limpiar versiones antiguas y redundantes de Windows Update, liberando gigabytes de espacio.
-* **🩺 Restaurar imagen de sistema**: repara errores graves del sistema comparando tu instalación local con la imagen oficial de Microsoft.
-* **🚀 Optimizar memoria RAM**: fuerza el recolector de basura del sistema para liberar memoria retenida innecesariamente.
-* **🔄 Reiniciar Windows Explorer**: refresca la barra de tareas y el escritorio de forma rápida si la interfaz se queda congelada.
+* **🧹 Limpiar sistema**: dos modos. La **rápida** borra temporales del usuario y de Windows y vacía la caché DNS. La **completa** añade la limpieza de componentes de Windows con `DISM`.
+* **🛠 Reparar Windows**: ejecuta `DISM /RestoreHealth` y después `SFC /scannow` en una sola consola.
+* **🩺 Diagnóstico**: solo lectura. Comprueba la imagen de Windows, los discos y Defender; el modo completo añade análisis del almacén de componentes y `chkdsk`.
 
-Las acciones largas o destructivas (limpieza, SFC, DISM y reinicio del Explorador) piden confirmación antes de ejecutarse. Si `winget` no está disponible, la aplicación avisa en lugar de fallar.
+El menú **Herramientas** contiene las acciones secundarias:
+
+- Crear un punto de restauración.
+- Análisis rápido con Windows Defender.
+- Abrir Windows Update (winget actualiza aplicaciones, no Windows).
+- Abrir el log.
+
+Las acciones largas piden confirmación antes de ejecutarse. La limpieza y el diagnóstico permiten elegir entre modo rápido y completo. Si `winget` no está disponible, la aplicación avisa en lugar de fallar.
+
+### Tiempos orientativos
+
+| Acción | Tiempo |
+|--------|--------|
+| Limpieza rápida | 1-2 minutos |
+| Limpieza completa | 10-30 minutos |
+| Reparar Windows | 20-60 minutos |
+| Diagnóstico rápido | 1-3 minutos |
+| Diagnóstico completo | 5-20 minutos |
+| Actualizar software | Depende de las actualizaciones |
 
 ---
 
@@ -33,6 +48,7 @@ T4MW incluye un **sistema de temas dinámico**:
 - **Modo oscuro**: para reducir la fatiga visual (estética slate/azul).
 - **Modo claro**: interfaz limpia y profesional.
 - **Tooltips informativos**: cada botón muestra una breve explicación de lo que hace al pasar el ratón.
+- **Menú Herramientas**: las acciones secundarias quedan fuera del menú principal para no saturarlo.
 
 ---
 
@@ -87,7 +103,11 @@ La actividad se registra en `%TEMP%\t4mw.log`. Es útil cuando se ejecuta el `.e
 Este script ejecuta comandos que modifican archivos del sistema y registros de actualización. Se recomienda:
 
 - ✅ Cerrar aplicaciones importantes antes de usar las herramientas de limpieza.
-- ⏱️ Tener paciencia durante los procesos de SFC y DISM, ya que pueden tardar varios minutos.
+- 🚦 No ejecutes dos acciones largas a la vez: espera a que termine la consola.
+- 💾 Crear un punto de restauración antes de usar **Reparar Windows**.
+- ⏱️ Tener paciencia durante SFC, DISM y `chkdsk`; pueden tardar varios minutos y la consola no debe cerrarse.
+- 🧹 La limpieza no vacía la papelera de reciclaje ni toca documentos personales.
+- ℹ️ La limpieza completa elimina componentes de actualizaciones anteriores y puede impedir desinstalar algunas actualizaciones.
 - ⚖️ **Responsabilidad**: el autor no se hace responsable de un uso indebido de las herramientas.
 
 ---
