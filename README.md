@@ -3,7 +3,7 @@
 
 **T4MW (Tools4me Windows)** es una suite de mantenimiento ligera y potente escrita en Python. Está diseñada para centralizar las tareas de optimización más comunes de Windows en una interfaz gráfica moderna, intuitiva y fácil de usar, eliminando la necesidad de recordar comandos complejos de la terminal.
 
-![Versión](https://img.shields.io/badge/Versi%C3%B3n-V.2-blue)
+![Versión](https://img.shields.io/badge/Versi%C3%B3n-V.2.1-blue)
 ![Python](https://img.shields.io/badge/Python-3.x-green)
 ![OS](https://img.shields.io/badge/OS-Windows-informational)
 ![Licencia](https://img.shields.io/badge/Licencia-MIT-yellow)
@@ -67,6 +67,12 @@ pyinstaller Tools4MeW.spec
 ```
 
 El ejecutable aparece en `dist/Tools4MeW.exe`. Para el método manual y la solución de problemas, consulta [CONVERTIR_A_EXE.md](CONVERTIR_A_EXE.md).
+
+---
+
+## 🧪 Pruebas
+
+Antes de compilar o distribuir una versión, sigue la checklist de [PRUEBAS.md](PRUEBAS.md). Recoge el resultado de cada acción y revisa el log si algo falla.
 
 ---
 

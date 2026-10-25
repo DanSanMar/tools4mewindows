@@ -1,7 +1,7 @@
 # AGENTS.md
 
 ## Repo
-Single-file Python Tkinter GUI for Windows system maintenance. The only source file is `t4mw.py`; the docs are `README.md` and `CONVERTIR_A_EXE.md`. There are no packages, tests, CI, lint, or typecheck. Dependencies are listed by name in `requirements.txt` (`pillow`, `pyinstaller`); there are no pins. Do not invent test/lint/build-tool commands.
+Single-file Python Tkinter GUI for Windows system maintenance. The only source file is `t4mw.py`; the docs are `README.md`, `CONVERTIR_A_EXE.md`, and `PRUEBAS.md`. There are no packages, automated tests, CI, lint, or typecheck. Dependencies are listed by name in `requirements.txt` (`pillow`, `pyinstaller`); there are no pins. Do not invent test/lint/build-tool commands.
 
 ## Run
 - `python t4mw.py` — Windows 10/11 only. It calls Windows-only tools (`winget`, `cmd.exe`, `sfc`, `dism`, `powershell`, `taskkill`) and is not meaningful on Linux/macOS.
@@ -18,7 +18,7 @@ Single-file Python Tkinter GUI for Windows system maintenance. The only source f
 - `--add-data` uses `;` on Windows and `:` on Linux/macOS.
 
 ## Docs
-- `README.md` covers features and installation; `CONVERTIR_A_EXE.md` covers packaging. Keep both in sync when behavior changes.
+- `README.md` covers features and installation; `CONVERTIR_A_EXE.md` covers packaging; `PRUEBAS.md` is the manual checklist for validating a release on Windows. Keep them in sync when behavior changes.
 - The version is defined once in `VERSION` (`t4mw.py`) and used in the window title, header, and console banner. Keep the README badge in sync.
 
 ## Gotchas

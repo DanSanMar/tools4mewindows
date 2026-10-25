@@ -7,7 +7,7 @@ from tkinter import messagebox
 import subprocess
 import shutil
 
-VERSION = "V.2"
+VERSION = "V.2.1"
 
 # --- LOGGING A ARCHIVO TEMPORAL (útil cuando se ejecuta como .exe sin consola) ---
 log_path = os.path.join(os.environ.get("TEMP", "."), "t4mw.log")
