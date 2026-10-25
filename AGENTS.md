@@ -19,7 +19,7 @@ Single-file Python Tkinter GUI for Windows system maintenance. The only source f
 
 ## Docs
 - `README.md` covers features and installation; `CONVERTIR_A_EXE.md` covers packaging. Keep both in sync when behavior changes.
-- The version is V.2 in the window header and in the console banner. The README badge must match.
+- The version is defined once in `VERSION` (`t4mw.py`) and used in the window title, header, and console banner. Keep the README badge in sync.
 
 ## Gotchas
 - `LogoALL4meW.png` is tracked in git even though `.gitignore` lists it; `.gitignore` does not affect already-tracked files.

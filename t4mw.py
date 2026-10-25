@@ -5,6 +5,9 @@ import logging
 import tkinter as tk
 from tkinter import messagebox
 import subprocess
+import shutil
+
+VERSION = "V.2"
 
 # --- LOGGING A ARCHIVO TEMPORAL (útil cuando se ejecuta como .exe sin consola) ---
 log_path = os.path.join(os.environ.get("TEMP", "."), "t4mw.log")
@@ -13,13 +16,23 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(message)s",
 )
-logging.info("Iniciando T4MW")
+logging.info("Iniciando T4MW %s", VERSION)
 
 # --- VERIFICACIÓN E INSTALACIÓN AUTOMÁTICA DE LIBRERÍAS ---
 # Comprueba si Pillow (para manejar JPG) está instalada. Si no, la instala sola.
 try:
     from PIL import Image, ImageTk
 except ImportError:
+    if getattr(sys, "frozen", False):
+        # Dentro de un .exe no se puede instalar Pillow: debe venir empaquetada
+        root_err = tk.Tk()
+        root_err.withdraw()
+        messagebox.showerror(
+            "Error de Dependencias",
+            "El ejecutable no incluye Pillow. Recompílalo con 'pyinstaller Tools4MeW.spec'.",
+        )
+        sys.exit()
+
     try:
         subprocess.check_call([sys.executable, "-m", "pip", "install", "pillow"])
         from PIL import Image, ImageTk
@@ -32,12 +45,8 @@ except ImportError:
 
 def resource_path(relative_path):
     """ Obtiene la ruta absoluta de los recursos, compatible con PyInstaller """
-    try:
-        # PyInstaller crea una carpeta temporal y guarda la ruta en _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-
+    # PyInstaller crea una carpeta temporal y guarda la ruta en _MEIPASS
+    base_path = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
     return os.path.join(base_path, relative_path)
 
 # Ahora usa la función para cargar tu imagen
@@ -107,62 +116,106 @@ if not es_admin():
 
 # CAMBIO DE DIRECTORIO: Hazlo DESPUÉS de ser admin
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
+logging.info("Ejecutando como administrador en %s", os.getcwd())
 
 # --- LÓGICA DE LAS HERRAMIENTAS (BACKEND) ---
 
 # Función maestra para ejecutar comandos en el CMD de Windows de forma externa
 def ejecutar_externo(titulo, comando):
-    logo_ascii = "### Tools4meW - V.2 ###" # Versión simplificada para evitar errores de escape
+    logo_ascii = f"### Tools4meW - {VERSION} ###" # Versión simplificada para evitar errores de escape
     
-    # Construimos el comando de forma que sea una sola línea limpia para el CMD
-    # Usamos /K en lugar de /C si quieres que la ventana SE QUEDE ABIERTA aunque falle
+    # Construimos el comando como una sola línea para CMD. Usamos '&' (no '&&')
+    # para que la pausa final se ejecute también cuando el comando falla.
     script_cmd = (
-        f'title {titulo} && '
-        f'color 0b && '
-        f'echo {logo_ascii} && '
-        f'echo [+] Ejecutando: {titulo}... && '
-        f'echo ----------------------------------------- && '
-        f'{comando} && '
-        f'echo. && '
-        f'echo ----------------------------------------- && '
-        f'echo [!] Tarea finalizada. && '
+        f'title {titulo} & '
+        f'color 0b & '
+        f'echo {logo_ascii} & '
+        f'echo [+] Ejecutando: {titulo}... & '
+        f'echo ----------------------------------------- & '
+        f'{comando} & '
+        f'echo. & '
+        f'echo ----------------------------------------- & '
+        f'echo [!] Tarea finalizada. & '
         f'pause'
     )
-    
-    logging.info(f"Ejecutando: {titulo} -> {comando}")
+
+    logging.info("Ejecutando: %s -> %s", titulo, comando)
     try:
-        # Usamos shell=True y pasamos el string directamente. 
-        # CREATE_NEW_CONSOLE es clave para que no herede la consola invisible (si existe)
+        # Se pasa una sola cadena para que CMD interprete correctamente las
+        # comillas internas (por ejemplo, rutas con espacios). /d evita AutoRun.
+        # CREATE_NEW_CONSOLE es clave para que no herede la consola invisible.
         subprocess.Popen(
-            ["cmd.exe", "/c", script_cmd],
+            f'cmd.exe /d /c {script_cmd}',
             creationflags=subprocess.CREATE_NEW_CONSOLE
         )
     except Exception as e:
         logging.error(f"Error ejecutando {titulo}: {e}")
         messagebox.showerror("Error de Ejecución", f"No se pudo abrir la consola: {e}")
 
+def confirmar(titulo, mensaje):
+    # Pide confirmación antes de una acción larga o destructiva
+    return messagebox.askyesno(titulo, mensaje, icon="warning")
+
 def actualizar_winget():
     # Usa el gestor de paquetes nativo de Windows para actualizar todas las apps instaladas
+    if shutil.which("winget") is None:
+        logging.error("winget no encontrado en PATH")
+        messagebox.showerror(
+            "Winget no disponible",
+            "No se encontró 'winget' en el PATH.\n\n"
+            "Instala o actualiza 'App Installer' desde Microsoft Store y vuelve a intentarlo.",
+        )
+        return
     ejecutar_externo("Actualizando Software (Winget)", "winget upgrade --all --include-unknown --accept-package-agreements --accept-source-agreements")
 
 def limpiar_sistema():
     # flushdns: limpia la caché de red. del /q: borra archivos temporales del usuario y del sistema
-    ejecutar_externo("Limpieza de Temporales y DNS", "ipconfig /flushdns & del /q /f /s %temp%\\* & del /q /f /s C:\\Windows\\Temp\\*")
+    if not confirmar(
+        "Limpiar archivos basura",
+        "Se eliminarán los archivos temporales del usuario y del sistema, "
+        "y se vaciará la caché DNS.\n\n¿Quieres continuar?",
+    ):
+        return
+    ejecutar_externo("Limpieza de Temporales y DNS", 'ipconfig /flushdns & del /q /f /s "%temp%\\*" & del /q /f /s "C:\\Windows\\Temp\\*"')
 
 def reparar_sfc():
     # System File Checker: busca y repara archivos corruptos de Windows
+    if not confirmar(
+        "Reparar archivos del sistema",
+        "SFC /scannow puede tardar entre 10 y 30 minutos. "
+        "No cierres la consola hasta que termine.\n\n¿Quieres continuar?",
+    ):
+        return
     ejecutar_externo("Escaneo y Reparacion (SFC)", "sfc /scannow")
 
 def limpiar_updates():
     # DISM: Elimina archivos antiguos de actualizaciones de Windows que ya no son necesarios
+    if not confirmar(
+        "Eliminar residuos de Update",
+        "DISM eliminará componentes antiguos de Windows Update y puede tardar varios minutos.\n\n"
+        "¿Quieres continuar?",
+    ):
+        return
     ejecutar_externo("Limpieza de Actualizaciones (DISM)", "dism /online /cleanup-image /startcomponentcleanup")
 
 def optimizar_imagen():
     # Compara tu Windows con una copia en la nube de Microsoft para reparar errores graves
+    if not confirmar(
+        "Restaurar imagen de sistema",
+        "DISM restaurará la imagen del sistema y puede tardar bastante. "
+        "En algunos casos requiere conexión a Internet.\n\n¿Quieres continuar?",
+    ):
+        return
     ejecutar_externo("Reparar Imagen de Sistema (DISM)", "dism /online /cleanup-image /restorehealth")
 
 def reiniciar_explorador():
     # Mata el proceso de la barra de tareas y carpetas, y lo vuelve a iniciar para refrescar el sistema
+    if not confirmar(
+        "Reiniciar Windows Explorer",
+        "Se cerrará y reiniciará el Explorador de Windows. La barra de tareas parpadeará "
+        "y se cerrarán las ventanas de carpetas abiertas.\n\n¿Quieres continuar?",
+    ):
+        return
     ejecutar_externo("Reiniciando Explorador", "taskkill /f /im explorer.exe & start explorer.exe")
 
 def liberar_ram():
@@ -172,9 +225,15 @@ def liberar_ram():
 # --- INTERFAZ GRÁFICA (FRONTEND) ---
 try:
     app = tk.Tk()
-    app.title("T4MW - All4me Group")
+    app.title(f"T4MW - All4me Group ({VERSION})")
     app.geometry("600x850+500+20")
     app.resizable(True, True)
+
+    # Icono de la ventana (el .exe ya lo lleva, pero así también se ve al ejecutar el .py)
+    try:
+        app.iconbitmap(resource_path("LogoALL4meW.ico"))
+    except Exception as e:
+        logging.warning("No se pudo cargar el icono: %s", e)
 
     # --- CARGA DEL LOGO ALL4MEW ---
     try:
@@ -185,7 +244,7 @@ try:
         logo_img = ImageTk.PhotoImage(img_open)
     except Exception as e:
         logo_img = None
-        print(f"No se pudo cargar la imagen: {e}")
+        logging.warning("No se pudo cargar la imagen: %s", e)
 
     tema_oscuro = False 
 
@@ -222,6 +281,8 @@ try:
         container.config(bg=bg_main)
         
         # Bucle para actualizar cada botón creado
+        for frame in frames_botones:
+            frame.config(bg=bg_main)
         for btn in botones:
             btn.config(bg=btn_bg, fg=fg_primary, activebackground=btn_hover, activeforeground=fg_primary)
             
@@ -244,7 +305,7 @@ try:
     lbl_logo_icon = tk.Label(logo_frame)
     lbl_logo_icon.pack()
     
-    lbl_logo_text = tk.Label(logo_frame, text="T O O L S 4 M E W - V.2", font=("Segoe UI", 22, "bold"))
+    lbl_logo_text = tk.Label(logo_frame, text=f"T O O L S 4 M E W - {VERSION}", font=("Segoe UI", 22, "bold"))
     lbl_logo_text.pack()
 
 
@@ -253,11 +314,13 @@ try:
     container.pack(fill="both", expand=True, padx=40)
 
     botones = []
+    frames_botones = []
 
     # Función auxiliar para crear botones con un estilo unificado y tooltip
     def crear_boton_moderno(texto, comando, descripcion, icono):
         frame_btn = tk.Frame(container, bg="#0f172a") 
         frame_btn.pack(fill="x", pady=5)
+        frames_botones.append(frame_btn)
         
         full_text = f"  {icono}   {texto}"
         btn = tk.Button(frame_btn, text=full_text, font=("Segoe UI Semibold", 14), 

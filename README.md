@@ -22,6 +22,8 @@ El script integra las herramientas más eficaces de diagnóstico y limpieza de W
 * **🚀 Optimizar memoria RAM**: fuerza el recolector de basura del sistema para liberar memoria retenida innecesariamente.
 * **🔄 Reiniciar Windows Explorer**: refresca la barra de tareas y el escritorio de forma rápida si la interfaz se queda congelada.
 
+Las acciones largas o destructivas (limpieza, SFC, DISM y reinicio del Explorador) piden confirmación antes de ejecutarse. Si `winget` no está disponible, la aplicación avisa en lugar de fallar.
+
 ---
 
 ## 🎨 Interfaz personalizable
