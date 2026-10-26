@@ -184,6 +184,88 @@ def elegir_opcion(titulo, mensaje, opciones):
     ventana.wait_window()
     return resultado["valor"]
 
+def elegir_limpieza():
+    """Diálogo de limpieza con modos rápido/completo y papelera opcional."""
+    ventana = tk.Toplevel(app)
+    ventana.title("Limpiar sistema")
+    try:
+        ventana.iconbitmap(resource_path("LogoALL4meW.ico"))
+    except Exception:
+        pass
+    ventana.transient(app)
+    ventana.resizable(False, False)
+
+    bg = TEMA_ACTUAL.get("bg", "#f1f5f9")
+    fg = TEMA_ACTUAL.get("fg", "#0f172a")
+    btn_bg = TEMA_ACTUAL.get("btn", "#e2e8f0")
+    btn_hover = TEMA_ACTUAL.get("btn_hover", "#cbd5e1")
+    ventana.config(bg=bg)
+
+    contenido = tk.Frame(ventana, bg=bg, padx=20, pady=20)
+    contenido.pack(fill="both", expand=True)
+
+    tk.Label(
+        contenido,
+        text=(
+            "Elige el tipo de limpieza:\n\n"
+            "• Rápida: temporales del usuario y de Windows, y caché DNS (1-2 min).\n"
+            "• Completa: añade la limpieza de componentes de Windows con DISM (10-30 min).\n\n"
+            "La papelera de reciclaje solo se vacía si marcas la casilla inferior."
+        ),
+        bg=bg, fg=fg, justify="left", wraplength=430, font=("Segoe UI", 11),
+    ).pack(pady=(0, 10))
+
+    var_papelera = tk.BooleanVar(value=False)
+    tk.Checkbutton(
+        contenido,
+        text="Incluir papelera de reciclaje (borrado permanente)",
+        variable=var_papelera,
+        bg=bg, fg=fg, selectcolor=btn_bg,
+        activebackground=bg, activeforeground=fg,
+        font=("Segoe UI", 10), anchor="w", justify="left",
+        wraplength=430, cursor="hand2", highlightthickness=0, bd=0,
+    ).pack(fill="x", pady=(0, 2))
+
+    tk.Label(
+        contenido,
+        text="Si la marcas, los archivos de la papelera se eliminarán de forma permanente.",
+        bg=bg, fg="#dc2626", justify="left", wraplength=430,
+        font=("Segoe UI", 9),
+    ).pack(fill="x", pady=(0, 12))
+
+    resultado = {"modo": None, "papelera": False}
+
+    def elegir(modo):
+        resultado["modo"] = modo
+        resultado["papelera"] = bool(var_papelera.get())
+        ventana.destroy()
+
+    for texto, valor in (
+        ("Limpieza rápida", "rapida"),
+        ("Limpieza completa", "completa"),
+        ("Cancelar", None),
+    ):
+        tk.Button(
+            contenido, text=texto, command=lambda v=valor: elegir(v),
+            font=("Segoe UI Semibold", 11), anchor="w", padx=12, pady=8,
+            bg=btn_bg, fg=fg, activebackground=btn_hover, activeforeground=fg,
+            relief="flat", cursor="hand2",
+        ).pack(fill="x", pady=3)
+
+    ventana.bind("<Escape>", lambda e: elegir(None))
+    ventana.protocol("WM_DELETE_WINDOW", lambda: elegir(None))
+
+    ventana.update_idletasks()
+    x = app.winfo_rootx() + (app.winfo_width() - ventana.winfo_reqwidth()) // 2
+    y = app.winfo_rooty() + (app.winfo_height() - ventana.winfo_reqheight()) // 2
+    ventana.geometry(f"+{max(x, 0)}+{max(y, 0)}")
+
+    ventana.wait_visibility()
+    ventana.grab_set()
+    ventana.focus_set()
+    ventana.wait_window()
+    return resultado["modo"], resultado["papelera"]
+
 def construir_script(titulo, pasos):
     """Construye una línea de CMD con varios pasos numerados."""
     logo_ascii = f"### Tools4meW - {VERSION} ###"
@@ -251,23 +333,12 @@ def actualizar_winget():
     )
 
 def limpiar_sistema():
-    modo = elegir_opcion(
-        "Limpiar sistema",
-        "Elige el tipo de limpieza:\n\n"
-        "• Rápida: temporales del usuario y de Windows, y caché DNS (1-2 min).\n"
-        "• Completa: añade la limpieza de componentes de Windows con DISM (10-30 min).\n\n"
-        "No se toca la papelera de reciclaje ni tus documentos.",
-        [
-            ("Limpieza rápida", "rapida"),
-            ("Limpieza completa", "completa"),
-            ("Cancelar", None),
-        ],
-    )
+    modo, incluir_papelera = elegir_limpieza()
     if modo is None:
         logging.info("Limpieza cancelada por el usuario")
         return
 
-    logging.info("Modo de limpieza: %s", modo)
+    logging.info("Modo de limpieza: %s; papelera: %s", modo, incluir_papelera)
     pasos = [
         (
             "Limpiando temporales del usuario",
@@ -288,6 +359,16 @@ def limpiar_sistema():
         ("Vaciando cache DNS", "ipconfig /flushdns"),
     ]
 
+    if incluir_papelera:
+        pasos.append((
+            "Vaciando papelera de reciclaje",
+            comando_powershell(
+                "try { Clear-RecycleBin -Force -ErrorAction Stop; "
+                "Write-Host 'Papelera vaciada.' } "
+                "catch { Write-Host ('Aviso: ' + $_.Exception.Message) }"
+            ),
+        ))
+
     if modo == "completa":
         pasos.append((
             "Limpiando componentes de Windows con DISM",
@@ -295,6 +376,8 @@ def limpiar_sistema():
         ))
 
     titulo = "Limpieza rapida" if modo == "rapida" else "Limpieza completa"
+    if incluir_papelera:
+        titulo += " + papelera"
     ejecutar_secuencia(titulo, pasos)
 
 def reparar_windows():
@@ -384,23 +467,6 @@ def crear_punto_restauracion():
         ),
     )
 
-def vaciar_papelera():
-    if not confirmar(
-        "Vaciar papelera de reciclaje",
-        "Se eliminarán de forma permanente todos los archivos de la papelera "
-        "de reciclaje.\n\nEsta acción no se puede deshacer. ¿Quieres continuar?",
-    ):
-        return
-
-    ejecutar_externo(
-        "Vaciando papelera de reciclaje",
-        comando_powershell(
-            "try { Clear-RecycleBin -Force -ErrorAction Stop; "
-            "Write-Host 'Papelera vaciada.' } "
-            "catch { Write-Host ('Aviso: ' + $_.Exception.Message) }"
-        ),
-    )
-
 def analizar_defender():
     if not confirmar(
         "Análisis rápido de Defender",
@@ -438,6 +504,17 @@ def abrir_log():
         logging.exception("No se pudo abrir el log")
         messagebox.showerror("Log", f"No se pudo abrir el archivo de log:\n\n{e}")
 
+def acerca_de():
+    messagebox.showinfo(
+        f"Acerca de T4MW {VERSION}",
+        f"T4MW - All4me Group\n\n"
+        f"Versión {VERSION}\n"
+        "Herramientas de mantenimiento para Windows 10/11.\n\n"
+        "Desarrollado por DanSanMar.\n"
+        "https://github.com/DanSanMar/tools4mewindows\n\n"
+        "Licencia MIT.",
+    )
+
 # --- INTERFAZ GRÁFICA (FRONTEND) ---
 try:
     app = tk.Tk()
@@ -451,16 +528,22 @@ try:
     except Exception as e:
         logging.warning("No se pudo cargar el icono: %s", e)
 
-    # --- MENÚ DE HERRAMIENTAS ---
+    # --- MENÚS ---
+    def poblar_menu_herramientas(menu):
+        menu.add_command(label="Crear punto de restauración", command=crear_punto_restauracion)
+        menu.add_command(label="Análisis rápido de Defender", command=analizar_defender)
+
+    def poblar_menu_ayuda(menu):
+        menu.add_command(label="Abrir log", command=abrir_log)
+        menu.add_command(label="Acerca de T4MW", command=acerca_de)
+
     menubar = tk.Menu(app)
     menu_herramientas = tk.Menu(menubar, tearoff=0)
-    menu_herramientas.add_command(label="Crear punto de restauración", command=crear_punto_restauracion)
-    menu_herramientas.add_command(label="Vaciar papelera de reciclaje", command=vaciar_papelera)
-    menu_herramientas.add_command(label="Análisis rápido de Defender", command=analizar_defender)
-    menu_herramientas.add_separator()
-    menu_herramientas.add_command(label="Abrir Windows Update", command=abrir_windows_update)
-    menu_herramientas.add_command(label="Abrir log", command=abrir_log)
+    poblar_menu_herramientas(menu_herramientas)
+    menu_ayuda = tk.Menu(menubar, tearoff=0)
+    poblar_menu_ayuda(menu_ayuda)
     menubar.add_cascade(label="Herramientas", menu=menu_herramientas)
+    menubar.add_cascade(label="Ayuda", menu=menu_ayuda)
     app.config(menu=menubar)
 
     # --- CARGA DEL LOGO ALL4MEW ---
@@ -504,6 +587,7 @@ try:
 
         # Aplicación de los colores a cada componente
         app.config(bg=bg_main)
+        pie.config(bg=bg_main)
         logo_frame.config(bg=bg_main)
         
         # Lógica de colores para el logo (por si falla la imagen, usa el rayo)
@@ -523,6 +607,11 @@ try:
         for btn in botones:
             btn.config(bg=btn_bg, fg=fg_primary, activebackground=btn_hover, activeforeground=fg_primary)
             
+        btn_herramientas.config(
+            bg=btn_bg, fg=fg_primary,
+            activebackground=btn_hover, activeforeground=fg_primary,
+        )
+
         btn_tema.config(
             text="  MODO CLARO  " if tema_oscuro else "  MODO OSCURO  ",
             bg=accent,
@@ -535,7 +624,7 @@ try:
         aplicar_tema()
 
     # --- DISEÑO DE CABECERA ---
-    logo_frame = tk.Frame(app, pady=30)
+    logo_frame = tk.Frame(app, pady=20)
     logo_frame.pack(fill="x")
 
     # Contenedor del icono/logo
@@ -556,26 +645,42 @@ try:
     # Función auxiliar para crear botones con un estilo unificado y tooltip
     def crear_boton_moderno(texto, comando, descripcion, icono):
         frame_btn = tk.Frame(container, bg="#0f172a") 
-        frame_btn.pack(fill="x", pady=5)
+        frame_btn.pack(fill="x", pady=3)
         frames_botones.append(frame_btn)
         
         full_text = f"  {icono}   {texto}"
         btn = tk.Button(frame_btn, text=full_text, font=("Segoe UI Semibold", 14), 
-                       anchor="w", padx=20, pady=10,
+                       anchor="w", padx=20, pady=8,
                        relief="flat", cursor="hand2", command=comando)
         btn.pack(fill="x")
         botones.append(btn)
         Tooltip(btn, descripcion) # Asigna la ayuda flotante
 
     # --- DEFINICIÓN DE BOTONES ---
-    crear_boton_moderno("Actualizar Todo el Software", actualizar_winget, "Actualiza apps con Winget.\nWindows Update: menú Herramientas.", "📦")
-    crear_boton_moderno("Limpiar Sistema", limpiar_sistema, "Limpieza rápida (temporales y DNS) o completa (incluye DISM).", "🧹")
+    crear_boton_moderno("Actualizar Todo el Software", actualizar_winget, "Actualiza las aplicaciones instaladas con Winget.", "📦")
+    crear_boton_moderno("Abrir Windows Update", abrir_windows_update, "Abre Configuración > Windows Update.\nNo instala actualizaciones automáticamente.", "🔄")
+    crear_boton_moderno("Limpiar Sistema", limpiar_sistema, "Limpieza rápida o completa. Puedes incluir la papelera de reciclaje.", "🧹")
     crear_boton_moderno("Reparar Windows", reparar_windows, "Ejecuta DISM /RestoreHealth y SFC /scannow.", "🛠")
     crear_boton_moderno("Diagnóstico", diagnostico, "Comprueba Windows, los discos y Defender sin modificar nada.", "🩺")
 
-    # Botón inferior para cambiar el tema
-    btn_tema = tk.Button(app, font=("Segoe UI", 12, "bold"), relief="raised", cursor="hand2", command=alternar_tema)
-    btn_tema.pack(pady=20)
+    # --- PIE: HERRAMIENTAS Y TEMA ---
+    pie = tk.Frame(app)
+    pie.pack(pady=12)
+
+    btn_herramientas = tk.Menubutton(
+        pie, text="  ⚙  HERRAMIENTAS  ",
+        font=("Segoe UI", 12, "bold"), relief="raised", cursor="hand2",
+    )
+    menu_footer = tk.Menu(btn_herramientas, tearoff=0)
+    poblar_menu_herramientas(menu_footer)
+    menu_footer.add_separator()
+    poblar_menu_ayuda(menu_footer)
+    btn_herramientas.config(menu=menu_footer)
+    btn_herramientas.pack(side="left", padx=8)
+    Tooltip(btn_herramientas, "Punto de restauración, Defender, log y Acerca de.")
+
+    btn_tema = tk.Button(pie, font=("Segoe UI", 12, "bold"), relief="raised", cursor="hand2", command=alternar_tema)
+    btn_tema.pack(side="left", padx=8)
 
     # Iniciar la interfaz con el tema configurado
     aplicar_tema()

@@ -19,10 +19,12 @@ Marca cada casilla cuando el resultado coincida con lo esperado. Si algo falla, 
 - [ ] El título de la ventana muestra `T4MW - All4me Group (V.3)`.
 - [ ] La cabecera muestra `T O O L S 4 M E W - V.3`.
 - [ ] Se ven el icono y el logo.
-- [ ] El menú principal tiene exactamente cuatro botones: **Actualizar Todo el Software**, **Limpiar Sistema**, **Reparar Windows** y **Diagnóstico**.
+- [ ] El menú principal tiene exactamente cinco botones: **Actualizar Todo el Software**, **Abrir Windows Update**, **Limpiar Sistema**, **Reparar Windows** y **Diagnóstico**.
 - [ ] No aparecen las acciones antiguas de RAM ni de reiniciar Explorer.
-- [ ] El menú **Herramientas** contiene punto de restauración, papelera, análisis de Defender, Windows Update y log.
-- [ ] La ventana muestra los cuatro botones y el botón de tema sin recortes.
+- [ ] El menú **Herramientas** contiene punto de restauración y análisis de Defender.
+- [ ] El menú **Ayuda** contiene Abrir log y Acerca de T4MW.
+- [ ] El botón **HERRAMIENTAS** de la parte inferior abre el menú con restauración, Defender, log y Acerca de.
+- [ ] La ventana muestra los cinco botones, el botón Herramientas y el botón de tema sin recortes.
 - [ ] Cambiar entre modo claro y oscuro: no deben quedar marcos oscuros en modo claro.
 - [ ] Abrir el diálogo de **Limpiar Sistema** en modo oscuro y en modo claro: debe usar los colores del tema.
 - [ ] Cerrar y volver a abrir la aplicación.
@@ -35,20 +37,32 @@ Marca cada casilla cuando el resultado coincida con lo esperado. Si algo falla, 
 - [ ] Al terminar, la consola se queda en `pause`.
 - [ ] El comando aparece en `%TEMP%\t4mw.log`.
 - [ ] Probar en un equipo sin *App Installer* o sin `winget` en el PATH: debe salir el diálogo **Winget no disponible**, no una consola rota.
+- [ ] Pulsar **Abrir Windows Update**: abre la página de Windows Update en Configuración. No debe ejecutar `winget` ni modificar nada.
 
 ## 3. Limpieza rápida
 
-- [ ] Pulsar **Limpiar Sistema**: aparece un diálogo con **Limpieza rápida**, **Limpieza completa** y **Cancelar**.
+- [ ] Pulsar **Limpiar Sistema**: aparece un diálogo con **Limpieza rápida**, **Limpieza completa**, la casilla **Incluir papelera de reciclaje** y **Cancelar**.
+- [ ] La casilla de la papelera está desmarcada por defecto.
 - [ ] Pulsar **Cancelar** o cerrar el diálogo con Escape: no se ejecuta nada.
-- [ ] Elegir **Limpieza rápida**: se abre una consola con tres pasos.
+- [ ] Elegir **Limpieza rápida** sin marcar la papelera: se abre una consola con tres pasos.
 - [ ] Se limpian los temporales del usuario y de Windows, y se ejecuta `ipconfig /flushdns`.
 - [ ] Los archivos en uso se omiten sin romper la consola.
 - [ ] El log `%TEMP%\t4mw.log` sigue existiendo después de la limpieza.
 - [ ] Los pasos aparecen en el log.
 
+### Limpieza con papelera (opcional)
+
+- [ ] Envía un archivo de prueba a la papelera. No uses archivos personales.
+- [ ] Abre **Limpiar Sistema**, marca **Incluir papelera de reciclaje** y elige **Limpieza rápida**.
+- [ ] El diálogo muestra el aviso de que el borrado es permanente.
+- [ ] La consola muestra un cuarto paso, `Vaciando papelera de reciclaje`, y la papelera queda vacía.
+- [ ] La consola muestra `Papelera vaciada.` o un aviso legible si la papelera ya estaba vacía.
+- [ ] Al volver a abrir el diálogo, la casilla vuelve a estar desmarcada.
+- [ ] La acción de papelera queda registrada en el log.
+
 ## 4. Limpieza completa
 
-- [ ] Pulsar **Limpiar Sistema** → **Limpieza completa**.
+- [ ] Pulsar **Limpiar Sistema** → **Limpieza completa** sin marcar la papelera.
 - [ ] La consola muestra cuatro pasos e incluye `dism /online /cleanup-image /startcomponentcleanup`.
 - [ ] La consola permanece abierta al terminar, aunque DISM tarde.
 - [ ] Los pasos aparecen en el log.
@@ -74,17 +88,14 @@ Marca cada casilla cuando el resultado coincida con lo esperado. Si algo falla, 
 - [ ] El diagnóstico no modifica nada y no pide reinicio.
 - [ ] Los pasos aparecen en el log.
 
-## 7. Herramientas
+## 7. Herramientas y Ayuda
 
 - [ ] **Crear punto de restauración**: pide confirmación y ejecuta `Checkpoint-Computer`. Si la Protección del sistema está desactivada, muestra el error en la consola sin cerrarla.
-- [ ] Antes de probar la papelera, crea un archivo de prueba y envíalo a la papelera. No uses archivos personales.
-- [ ] **Vaciar papelera de reciclaje**: pide confirmación; **No** no hace nada; **Sí** ejecuta `Clear-RecycleBin -Force` y la papelera queda vacía.
-- [ ] La consola muestra `Papelera vaciada.` o un aviso legible si ya estaba vacía.
-- [ ] La acción de papelera queda registrada en el log.
 - [ ] **Análisis rápido de Defender**: pide confirmación, actualiza firmas y lanza un análisis rápido. Si hay otro antivirus, muestra el error en la consola.
-- [ ] **Abrir Windows Update**: abre la página de Windows Update en Configuración.
-- [ ] **Abrir log**: abre `%TEMP%\t4mw.log` en el editor predeterminado.
+- [ ] El botón inferior **HERRAMIENTAS** abre un menú con restauración, Defender, log y Acerca de.
+- [ ] **Ayuda → Abrir log**: abre `%TEMP%\t4mw.log` en el editor predeterminado.
 - [ ] Si el log no existe, muestra un aviso en lugar de fallar.
+- [ ] **Ayuda → Acerca de T4MW**: muestra la versión, el autor, GitHub y la licencia MIT.
 
 ## 8. Log
 
@@ -98,7 +109,7 @@ Marca cada casilla cuando el resultado coincida con lo esperado. Si algo falla, 
 - [ ] `dist\Tools4MeW.exe` arranca en un Windows sin Python instalado.
 - [ ] El `.exe` pide UAC, muestra el logo de cabecera, el icono de la ventana y la versión V.3.
 - [ ] El archivo `Tools4MeW.exe` muestra el icono personalizado en el Explorador.
-- [ ] Los cuatro botones, los diálogos de modo y el menú Herramientas funcionan igual que con Python.
+- [ ] Los cinco botones, los diálogos de modo, el botón Herramientas y los menús funcionan igual que con Python.
 - [ ] La limpieza rápida no rompe el `.exe` desinstalado: el directorio `_MEI*` de PyInstaller se conserva.
 - [ ] El `.exe` no intenta instalar Pillow con `pip` si falta la dependencia.
 

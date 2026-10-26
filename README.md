@@ -12,20 +12,27 @@
 
 ## ✨ Características principales
 
-El menú principal se reduce a cuatro acciones claras:
+El menú principal tiene cinco acciones claras:
 
 * **📦 Actualizar todo el software**: usa el gestor `winget` para buscar y aplicar actualizaciones de todas tus aplicaciones instaladas de forma masiva.
-* **🧹 Limpiar sistema**: dos modos. La **rápida** borra temporales del usuario y de Windows y vacía la caché DNS. La **completa** añade la limpieza de componentes de Windows con `DISM`.
+* **🔄 Abrir Windows Update**: abre la página de Windows Update en Configuración. `winget` actualiza aplicaciones, no Windows.
+* **🧹 Limpiar sistema**: dos modos. La **rápida** borra temporales del usuario y de Windows y vacía la caché DNS. La **completa** añade la limpieza de componentes de Windows con `DISM`. La papelera de reciclaje se puede incluir como opción; si se marca, el borrado es permanente.
 * **🛠 Reparar Windows**: ejecuta `DISM /RestoreHealth` y después `SFC /scannow` en una sola consola.
 * **🩺 Diagnóstico**: solo lectura. Comprueba la imagen de Windows, los discos y Defender; el modo completo añade análisis del almacén de componentes y `chkdsk`.
 
-El menú **Herramientas** contiene las acciones secundarias:
+Los menús **Herramientas** y **Ayuda** contienen las acciones secundarias.
+
+El menú **Herramientas** incluye:
 
 - Crear un punto de restauración.
-- Vaciar la papelera de reciclaje (con confirmación; es irreversible).
 - Análisis rápido con Windows Defender.
-- Abrir Windows Update (winget actualiza aplicaciones, no Windows; este acceso abre Configuración).
+
+El menú **Ayuda** incluye:
+
 - Abrir el log.
+- Acerca de T4MW.
+
+Además, el botón **Herramientas** de la parte inferior abre un menú con todas esas opciones.
 
 Las acciones largas piden confirmación antes de ejecutarse. La limpieza y el diagnóstico permiten elegir entre modo rápido y completo. Si `winget` no está disponible, la aplicación avisa en lugar de fallar.
 
@@ -35,11 +42,11 @@ Las acciones largas piden confirmación antes de ejecutarse. La limpieza y el di
 |--------|--------|
 | Limpieza rápida | 1-2 minutos |
 | Limpieza completa | 10-30 minutos |
-| Vaciar papelera | Depende del tamaño |
 | Reparar Windows | 20-60 minutos |
 | Diagnóstico rápido | 1-3 minutos |
 | Diagnóstico completo | 5-20 minutos |
 | Actualizar software | Depende de las actualizaciones |
+| Abrir Windows Update | Inmediato |
 
 ---
 
@@ -50,7 +57,8 @@ T4MW incluye un **sistema de temas dinámico**:
 - **Modo oscuro**: para reducir la fatiga visual (estética slate/azul).
 - **Modo claro**: interfaz limpia y profesional.
 - **Tooltips informativos**: cada botón muestra una breve explicación de lo que hace al pasar el ratón.
-- **Menú Herramientas**: las acciones secundarias quedan fuera del menú principal para no saturarlo.
+- **Menús Herramientas y Ayuda**: las acciones secundarias quedan fuera del menú principal para no saturarlo.
+- **Botón Herramientas**: acceso visible en la parte inferior, además del menú superior.
 
 ---
 
@@ -108,7 +116,7 @@ Este script ejecuta comandos que modifican archivos del sistema y registros de a
 - 🚦 No ejecutes dos acciones largas a la vez: espera a que termine la consola.
 - 💾 Crear un punto de restauración antes de usar **Reparar Windows**.
 - ⏱️ Tener paciencia durante SFC, DISM y `chkdsk`; pueden tardar varios minutos y la consola no debe cerrarse.
-- 🧹 La limpieza de temporales no vacía la papelera ni toca documentos personales. Para vaciarla, usa **Herramientas → Vaciar papelera de reciclaje**; esa acción es irreversible.
+- 🧹 La limpieza de temporales no toca documentos personales. La papelera solo se vacía si marcas la opción **Incluir papelera de reciclaje** en el diálogo de limpieza; esa acción es irreversible.
 - ℹ️ La limpieza completa elimina componentes de actualizaciones anteriores y puede impedir desinstalar algunas actualizaciones.
 - ⚖️ **Responsabilidad**: el autor no se hace responsable de un uso indebido de las herramientas.
 
