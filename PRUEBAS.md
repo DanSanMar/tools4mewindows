@@ -19,12 +19,13 @@ Marca cada casilla cuando el resultado coincida con lo esperado. Si algo falla, 
 - [ ] El título de la ventana muestra `T4MW - All4me Group (V.3)`.
 - [ ] La cabecera muestra `T O O L S 4 M E W - V.3`.
 - [ ] Se ven el icono y el logo.
-- [ ] El menú principal tiene exactamente cinco botones: **Actualizar Todo el Software**, **Abrir Windows Update**, **Limpiar Sistema**, **Reparar Windows** y **Diagnóstico**.
+- [ ] El menú principal tiene exactamente cinco botones: **Actualizar Todo el Software**, **Abrir Windows Update**, **Limpiar Sistema**, **Diagnóstico** y **Reparar Windows**.
 - [ ] No aparecen las acciones antiguas de RAM ni de reiniciar Explorer.
-- [ ] El menú **Herramientas** contiene punto de restauración y análisis de Defender.
-- [ ] El menú **Ayuda** contiene Abrir log y Acerca de T4MW.
-- [ ] El botón **HERRAMIENTAS** de la parte inferior abre el menú con restauración, Defender, log y Acerca de.
-- [ ] La ventana muestra los cinco botones, el botón Herramientas y el botón de tema sin recortes.
+- [ ] La barra superior está alineada a la derecha y muestra **Más herramientas**, **Acerca de T4MW** y **Ayuda**.
+- [ ] **Más herramientas** contiene punto de restauración y análisis de Defender.
+- [ ] **Ayuda** contiene Abrir log y Ayuda de Windows.
+- [ ] No hay botón inferior de herramientas.
+- [ ] La ventana muestra los cinco botones y el botón de tema sin recortes.
 - [ ] Cambiar entre modo claro y oscuro: no deben quedar marcos oscuros en modo claro.
 - [ ] Abrir el diálogo de **Limpiar Sistema** en modo oscuro y en modo claro: debe usar los colores del tema.
 - [ ] Cerrar y volver a abrir la aplicación.
@@ -69,16 +70,7 @@ Marca cada casilla cuando el resultado coincida con lo esperado. Si algo falla, 
 - [ ] Antes de la limpieza, envía un archivo de prueba a la papelera.
 - [ ] Comprobar que no se ha vaciado la papelera de reciclaje ni se han tocado documentos personales.
 
-## 5. Reparar Windows
-
-- [ ] Pulsar **Reparar Windows**: aparece una confirmación con el aviso de duración.
-- [ ] El botón predeterminado de la confirmación es **No**: pulsar Enter no ejecuta la reparación.
-- [ ] Pulsar **No**: no se ejecuta nada.
-- [ ] Aceptar: se ejecuta primero `DISM /Online /Cleanup-Image /RestoreHealth` y después `SFC /scannow`.
-- [ ] La interfaz no se congela y la consola permanece abierta al terminar.
-- [ ] Los dos comandos aparecen en el log.
-
-## 6. Diagnóstico
+## 5. Diagnóstico
 
 - [ ] Pulsar **Diagnóstico**: aparece un diálogo con **Diagnóstico rápido**, **Diagnóstico completo** y **Cancelar**.
 - [ ] Pulsar **Cancelar** o cerrar el diálogo con Escape: no se ejecuta nada.
@@ -88,14 +80,23 @@ Marca cada casilla cuando el resultado coincida con lo esperado. Si algo falla, 
 - [ ] El diagnóstico no modifica nada y no pide reinicio.
 - [ ] Los pasos aparecen en el log.
 
-## 7. Herramientas y Ayuda
+## 6. Reparar Windows
 
-- [ ] **Crear punto de restauración**: pide confirmación y ejecuta `Checkpoint-Computer`. Si la Protección del sistema está desactivada, muestra el error en la consola sin cerrarla.
-- [ ] **Análisis rápido de Defender**: pide confirmación, actualiza firmas y lanza un análisis rápido. Si hay otro antivirus, muestra el error en la consola.
-- [ ] El botón inferior **HERRAMIENTAS** abre un menú con restauración, Defender, log y Acerca de.
+- [ ] Pulsar **Reparar Windows**: aparece una confirmación con el aviso de duración.
+- [ ] El botón predeterminado de la confirmación es **No**: pulsar Enter no ejecuta la reparación.
+- [ ] Pulsar **No**: no se ejecuta nada.
+- [ ] Aceptar: se ejecuta primero `DISM /Online /Cleanup-Image /RestoreHealth` y después `SFC /scannow`.
+- [ ] La interfaz no se congela y la consola permanece abierta al terminar.
+- [ ] Los dos comandos aparecen en el log.
+
+## 7. Más herramientas, Ayuda y Acerca de
+
+- [ ] **Más herramientas → Crear punto de restauración**: pide confirmación y ejecuta `Checkpoint-Computer`. Si la Protección del sistema está desactivada, muestra el error en la consola sin cerrarla.
+- [ ] **Más herramientas → Análisis rápido de Defender**: pide confirmación, actualiza firmas y lanza un análisis rápido. Si hay otro antivirus, muestra el error en la consola.
+- [ ] **Acerca de T4MW** (barra superior): muestra la versión, el autor, GitHub y la licencia MIT.
 - [ ] **Ayuda → Abrir log**: abre `%TEMP%\t4mw.log` en el editor predeterminado.
 - [ ] Si el log no existe, muestra un aviso en lugar de fallar.
-- [ ] **Ayuda → Acerca de T4MW**: muestra la versión, el autor, GitHub y la licencia MIT.
+- [ ] **Ayuda → Ayuda de Windows**: abre el navegador en la página de ayuda de Windows.
 
 ## 8. Log
 
@@ -109,7 +110,7 @@ Marca cada casilla cuando el resultado coincida con lo esperado. Si algo falla, 
 - [ ] `dist\Tools4MeW.exe` arranca en un Windows sin Python instalado.
 - [ ] El `.exe` pide UAC, muestra el logo de cabecera, el icono de la ventana y la versión V.3.
 - [ ] El archivo `Tools4MeW.exe` muestra el icono personalizado en el Explorador.
-- [ ] Los cinco botones, los diálogos de modo, el botón Herramientas y los menús funcionan igual que con Python.
+- [ ] Los cinco botones, los diálogos de modo, la barra superior y los menús funcionan igual que con Python.
 - [ ] La limpieza rápida no rompe el `.exe` desinstalado: el directorio `_MEI*` de PyInstaller se conserva.
 - [ ] El `.exe` no intenta instalar Pillow con `pip` si falta la dependencia.
 

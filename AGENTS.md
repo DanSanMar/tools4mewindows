@@ -8,7 +8,7 @@ Single-file Python Tkinter GUI for Windows system maintenance. The only source f
 - Requires Administrator; the script auto-elevates via UAC (`ctypes.shell32.ShellExecuteW` with `runas`), then `os.chdir`s to the script directory.
 - Dependency: `pillow` (PIL). The script auto-installs it at runtime via `pip install pillow` if missing — requires network. Pre-install with `pip install -r requirements.txt` (this also installs PyInstaller).
 - Logs to `%TEMP%\t4mw.log`.
-- Main actions: update (winget), open Windows Update (Settings), clean (quick/complete, optional recycle bin), repair (DISM + SFC), diagnose (quick/complete). Secondary tools live in the native "Herramientas" menu (restore point, Defender) and "Ayuda" menu (log, About), plus a visible "HERRAMIENTAS" footer button.
+- Main actions: update (winget), open Windows Update (Settings), clean (quick/complete, optional recycle bin), diagnose (quick/complete), repair (DISM + SFC). Secondary tools live in a custom right-aligned top bar: "Más herramientas" (restore point, Defender), "Acerca de T4MW" (top-level button), and "Ayuda" (log, Windows support link).
 
 ## Build `.exe`
 - Canonical: `pyinstaller Tools4MeW.spec` (icon `LogoALL4meW.ico`, `console=True`, embeds `LogoALL4meW.png` and `LogoALL4meW.ico`, output name `Tools4MeW`).
@@ -29,6 +29,7 @@ Single-file Python Tkinter GUI for Windows system maintenance. The only source f
 - The temp-cleanup step must keep excluding `_MEI*` and `t4mw.log`: `_MEI*` is the running onefile bundle, and the log is open. Do not replace it with a blanket `del "%TEMP%\*"`.
 - Emptying the recycle bin is an explicit opt-in checkbox in the cleanup dialog (`Clear-RecycleBin -Force`), default off; it permanently deletes personal files. Keep the checkbox opt-in and its permanent-deletion warning; do not make it part of routine cleanup by default.
 - Destructive confirmations (repair, restore point, Defender) use `default=messagebox.NO`; keep that default so Enter does not trigger an irreversible action. The recycle-bin option is an explicit checkbox, default off.
+- The top menu bar is a custom right-aligned frame with Menubuttons plus a top-level "Acerca de T4MW" button. The native Tk menubar cannot align cascades to the right. Keep the dropdowns and do not reintroduce the footer tools button.
 - The main-window "Abrir Windows Update" button only opens Settings (`ms-settings:windowsupdate`); it does not install updates. Winget handles apps, not Windows.
 - `DISM /StartComponentCleanup` removes superseded components; do not add `/ResetBase`, which would prevent uninstalling all updates.
 - The RAM GC and Explorer restart actions were removed on purpose. Do not reintroduce them without a concrete reason.

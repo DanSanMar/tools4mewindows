@@ -17,22 +17,14 @@ El menú principal tiene cinco acciones claras:
 * **📦 Actualizar todo el software**: usa el gestor `winget` para buscar y aplicar actualizaciones de todas tus aplicaciones instaladas de forma masiva.
 * **🔄 Abrir Windows Update**: abre la página de Windows Update en Configuración. `winget` actualiza aplicaciones, no Windows.
 * **🧹 Limpiar sistema**: dos modos. La **rápida** borra temporales del usuario y de Windows y vacía la caché DNS. La **completa** añade la limpieza de componentes de Windows con `DISM`. La papelera de reciclaje se puede incluir como opción; si se marca, el borrado es permanente.
-* **🛠 Reparar Windows**: ejecuta `DISM /RestoreHealth` y después `SFC /scannow` en una sola consola.
 * **🩺 Diagnóstico**: solo lectura. Comprueba la imagen de Windows, los discos y Defender; el modo completo añade análisis del almacén de componentes y `chkdsk`.
+* **🛠 Reparar Windows**: ejecuta `DISM /RestoreHealth` y después `SFC /scannow` en una sola consola.
 
-Los menús **Herramientas** y **Ayuda** contienen las acciones secundarias.
+La barra superior, alineada a la derecha, contiene:
 
-El menú **Herramientas** incluye:
-
-- Crear un punto de restauración.
-- Análisis rápido con Windows Defender.
-
-El menú **Ayuda** incluye:
-
-- Abrir el log.
-- Acerca de T4MW.
-
-Además, el botón **Herramientas** de la parte inferior abre un menú con todas esas opciones.
+- **Más herramientas**: crear un punto de restauración y análisis rápido con Windows Defender.
+- **Acerca de T4MW**: versión, autor, repositorio y licencia.
+- **Ayuda**: abrir el log y abrir la ayuda de Windows.
 
 Las acciones largas piden confirmación antes de ejecutarse. La limpieza y el diagnóstico permiten elegir entre modo rápido y completo. Si `winget` no está disponible, la aplicación avisa en lugar de fallar.
 
@@ -42,9 +34,9 @@ Las acciones largas piden confirmación antes de ejecutarse. La limpieza y el di
 |--------|--------|
 | Limpieza rápida | 1-2 minutos |
 | Limpieza completa | 10-30 minutos |
-| Reparar Windows | 20-60 minutos |
 | Diagnóstico rápido | 1-3 minutos |
 | Diagnóstico completo | 5-20 minutos |
+| Reparar Windows | 20-60 minutos |
 | Actualizar software | Depende de las actualizaciones |
 | Abrir Windows Update | Inmediato |
 
@@ -57,8 +49,7 @@ T4MW incluye un **sistema de temas dinámico**:
 - **Modo oscuro**: para reducir la fatiga visual (estética slate/azul).
 - **Modo claro**: interfaz limpia y profesional.
 - **Tooltips informativos**: cada botón muestra una breve explicación de lo que hace al pasar el ratón.
-- **Menús Herramientas y Ayuda**: las acciones secundarias quedan fuera del menú principal para no saturarlo.
-- **Botón Herramientas**: acceso visible en la parte inferior, además del menú superior.
+- **Barra superior alineada a la derecha**: Más herramientas, Acerca de T4MW y Ayuda.
 
 ---
 

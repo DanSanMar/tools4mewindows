@@ -386,7 +386,7 @@ def reparar_windows():
         "Se ejecutará DISM /RestoreHealth y después SFC /scannow.\n\n"
         "Puede tardar entre 20 y 60 minutos, conviene tener conexión a Internet "
         "y no se debe cerrar la consola. Si quieres, crea antes un punto de "
-        "restauración desde Herramientas.\n\n¿Quieres continuar?",
+        "restauración desde Más herramientas.\n\n¿Quieres continuar?",
     ):
         return
 
@@ -504,6 +504,18 @@ def abrir_log():
         logging.exception("No se pudo abrir el log")
         messagebox.showerror("Log", f"No se pudo abrir el archivo de log:\n\n{e}")
 
+def abrir_ayuda_windows():
+    url = "https://support.microsoft.com/es-es/windows"
+    try:
+        os.startfile(url)
+        logging.info("Abriendo la ayuda de Windows: %s", url)
+    except Exception as e:
+        logging.exception("No se pudo abrir la ayuda de Windows")
+        messagebox.showerror(
+            "Ayuda de Windows",
+            f"No se pudo abrir el enlace de ayuda:\n\n{e}",
+        )
+
 def acerca_de():
     messagebox.showinfo(
         f"Acerca de T4MW {VERSION}",
@@ -528,23 +540,48 @@ try:
     except Exception as e:
         logging.warning("No se pudo cargar el icono: %s", e)
 
-    # --- MENÚS ---
-    def poblar_menu_herramientas(menu):
+    # --- BARRA SUPERIOR DE MENÚS ---
+    def poblar_menu_mas(menu):
         menu.add_command(label="Crear punto de restauración", command=crear_punto_restauracion)
         menu.add_command(label="Análisis rápido de Defender", command=analizar_defender)
 
     def poblar_menu_ayuda(menu):
         menu.add_command(label="Abrir log", command=abrir_log)
-        menu.add_command(label="Acerca de T4MW", command=acerca_de)
+        menu.add_command(label="Ayuda de Windows", command=abrir_ayuda_windows)
 
-    menubar = tk.Menu(app)
-    menu_herramientas = tk.Menu(menubar, tearoff=0)
-    poblar_menu_herramientas(menu_herramientas)
-    menu_ayuda = tk.Menu(menubar, tearoff=0)
+    barra_menus = tk.Frame(app)
+    barra_menus.pack(fill="x", side="top")
+
+    # Se empaquetan de derecha a izquierda: Ayuda queda en el extremo derecho.
+    btn_menu_ayuda = tk.Menubutton(
+        barra_menus, text="  Ayuda  ",
+        font=("Segoe UI", 10), relief="flat", bd=0,
+        highlightthickness=0, cursor="hand2",
+    )
+    menu_ayuda = tk.Menu(btn_menu_ayuda, tearoff=0)
     poblar_menu_ayuda(menu_ayuda)
-    menubar.add_cascade(label="Herramientas", menu=menu_herramientas)
-    menubar.add_cascade(label="Ayuda", menu=menu_ayuda)
-    app.config(menu=menubar)
+    btn_menu_ayuda.config(menu=menu_ayuda)
+    btn_menu_ayuda.pack(side="right", padx=2, pady=2)
+
+    btn_menu_acerca = tk.Button(
+        barra_menus, text="  Acerca de T4MW  ", command=acerca_de,
+        font=("Segoe UI", 10), relief="flat", bd=0,
+        highlightthickness=0, cursor="hand2",
+    )
+    btn_menu_acerca.pack(side="right", padx=2, pady=2)
+
+    btn_menu_mas = tk.Menubutton(
+        barra_menus, text="  Más herramientas  ",
+        font=("Segoe UI", 10), relief="flat", bd=0,
+        highlightthickness=0, cursor="hand2",
+    )
+    menu_mas = tk.Menu(btn_menu_mas, tearoff=0)
+    poblar_menu_mas(menu_mas)
+    btn_menu_mas.config(menu=menu_mas)
+    btn_menu_mas.pack(side="right", padx=2, pady=2)
+
+    linea_menus = tk.Frame(app, height=1)
+    linea_menus.pack(fill="x")
 
     # --- CARGA DEL LOGO ALL4MEW ---
     try:
@@ -587,7 +624,8 @@ try:
 
         # Aplicación de los colores a cada componente
         app.config(bg=bg_main)
-        pie.config(bg=bg_main)
+        barra_menus.config(bg=bg_main)
+        linea_menus.config(bg=btn_bg)
         logo_frame.config(bg=bg_main)
         
         # Lógica de colores para el logo (por si falla la imagen, usa el rayo)
@@ -607,10 +645,11 @@ try:
         for btn in botones:
             btn.config(bg=btn_bg, fg=fg_primary, activebackground=btn_hover, activeforeground=fg_primary)
             
-        btn_herramientas.config(
-            bg=btn_bg, fg=fg_primary,
-            activebackground=btn_hover, activeforeground=fg_primary,
-        )
+        for btn_menu in (btn_menu_mas, btn_menu_acerca, btn_menu_ayuda):
+            btn_menu.config(
+                bg=bg_main, fg=fg_primary,
+                activebackground=btn_hover, activeforeground=fg_primary,
+            )
 
         btn_tema.config(
             text="  MODO CLARO  " if tema_oscuro else "  MODO OSCURO  ",
@@ -660,27 +699,12 @@ try:
     crear_boton_moderno("Actualizar Todo el Software", actualizar_winget, "Actualiza las aplicaciones instaladas con Winget.", "📦")
     crear_boton_moderno("Abrir Windows Update", abrir_windows_update, "Abre Configuración > Windows Update.\nNo instala actualizaciones automáticamente.", "🔄")
     crear_boton_moderno("Limpiar Sistema", limpiar_sistema, "Limpieza rápida o completa. Puedes incluir la papelera de reciclaje.", "🧹")
-    crear_boton_moderno("Reparar Windows", reparar_windows, "Ejecuta DISM /RestoreHealth y SFC /scannow.", "🛠")
     crear_boton_moderno("Diagnóstico", diagnostico, "Comprueba Windows, los discos y Defender sin modificar nada.", "🩺")
+    crear_boton_moderno("Reparar Windows", reparar_windows, "Ejecuta DISM /RestoreHealth y SFC /scannow.", "🛠")
 
-    # --- PIE: HERRAMIENTAS Y TEMA ---
-    pie = tk.Frame(app)
-    pie.pack(pady=12)
-
-    btn_herramientas = tk.Menubutton(
-        pie, text="  ⚙  HERRAMIENTAS  ",
-        font=("Segoe UI", 12, "bold"), relief="raised", cursor="hand2",
-    )
-    menu_footer = tk.Menu(btn_herramientas, tearoff=0)
-    poblar_menu_herramientas(menu_footer)
-    menu_footer.add_separator()
-    poblar_menu_ayuda(menu_footer)
-    btn_herramientas.config(menu=menu_footer)
-    btn_herramientas.pack(side="left", padx=8)
-    Tooltip(btn_herramientas, "Punto de restauración, Defender, log y Acerca de.")
-
-    btn_tema = tk.Button(pie, font=("Segoe UI", 12, "bold"), relief="raised", cursor="hand2", command=alternar_tema)
-    btn_tema.pack(side="left", padx=8)
+    # --- PIE: TEMA ---
+    btn_tema = tk.Button(app, font=("Segoe UI", 12, "bold"), relief="raised", cursor="hand2", command=alternar_tema)
+    btn_tema.pack(pady=12)
 
     # Iniciar la interfaz con el tema configurado
     aplicar_tema()
