@@ -22,11 +22,12 @@ El menú principal tiene cinco acciones claras:
 
 La barra superior, alineada a la derecha, contiene:
 
+- **Modo auto**: ejecuta en una sola consola la actualización con `winget`, la limpieza rápida y el diagnóstico rápido. Puedes marcar o desmarcar cada tarea; no incluye reparación, papelera, limpieza completa ni diagnóstico completo.
 - **Más herramientas**: crear un punto de restauración y análisis rápido con Windows Defender.
-- **Acerca de T4MW**: versión, autor, repositorio y licencia.
+- **Acerca de T4MW**: versión, autor, repositorio, perfil de GitHub y licencia.
 - **Ayuda**: abrir el log y abrir la ayuda de Windows.
 
-Las acciones largas piden confirmación antes de ejecutarse. La limpieza y el diagnóstico permiten elegir entre modo rápido y completo. Si `winget` no está disponible, la aplicación avisa en lugar de fallar.
+Las acciones largas piden confirmación antes de ejecutarse; el **Modo auto** se configura y se lanza desde su propio diálogo. La limpieza y el diagnóstico permiten elegir entre modo rápido y completo. Si `winget` no está disponible, la aplicación avisa en lugar de fallar.
 
 ### Tiempos orientativos
 
@@ -38,6 +39,7 @@ Las acciones largas piden confirmación antes de ejecutarse. La limpieza y el di
 | Diagnóstico completo | 5-20 minutos |
 | Reparar Windows | 20-60 minutos |
 | Actualizar software | Depende de las actualizaciones |
+| Modo auto | Depende de la actualización + 2-5 minutos |
 | Abrir Windows Update | Inmediato |
 
 ---
@@ -49,7 +51,7 @@ T4MW incluye un **sistema de temas dinámico**:
 - **Modo oscuro**: para reducir la fatiga visual (estética slate/azul).
 - **Modo claro**: interfaz limpia y profesional.
 - **Tooltips informativos**: cada botón muestra una breve explicación de lo que hace al pasar el ratón.
-- **Barra superior alineada a la derecha**: Más herramientas, Acerca de T4MW y Ayuda.
+- **Barra superior alineada a la derecha**: Modo auto, Más herramientas, Acerca de T4MW y Ayuda.
 
 ---
 
@@ -108,6 +110,7 @@ Este script ejecuta comandos que modifican archivos del sistema y registros de a
 - 💾 Crear un punto de restauración antes de usar **Reparar Windows**.
 - ⏱️ Tener paciencia durante SFC, DISM y `chkdsk`; pueden tardar varios minutos y la consola no debe cerrarse.
 - 🧹 La limpieza de temporales no toca documentos personales. La papelera solo se vacía si marcas la opción **Incluir papelera de reciclaje** en el diálogo de limpieza; esa acción es irreversible.
+- ⚙️ **Modo auto** solo ejecuta actualización con `winget`, limpieza rápida y diagnóstico rápido. No repara Windows, no vacía la papelera y no usa los modos completos.
 - ℹ️ La limpieza completa elimina componentes de actualizaciones anteriores y puede impedir desinstalar algunas actualizaciones.
 - ⚖️ **Responsabilidad**: el autor no se hace responsable de un uso indebido de las herramientas.
 

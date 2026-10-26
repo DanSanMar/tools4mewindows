@@ -21,13 +21,13 @@ Marca cada casilla cuando el resultado coincida con lo esperado. Si algo falla, 
 - [ ] Se ven el icono y el logo.
 - [ ] El menú principal tiene exactamente cinco botones: **Actualizar Todo el Software**, **Abrir Windows Update**, **Limpiar Sistema**, **Diagnóstico** y **Reparar Windows**.
 - [ ] No aparecen las acciones antiguas de RAM ni de reiniciar Explorer.
-- [ ] La barra superior está alineada a la derecha y muestra **Más herramientas**, **Acerca de T4MW** y **Ayuda**.
+- [ ] La barra superior está alineada a la derecha y muestra **Modo auto**, **Más herramientas**, **Acerca de T4MW** y **Ayuda**, con **Ayuda** en el extremo derecho.
 - [ ] **Más herramientas** contiene punto de restauración y análisis de Defender.
 - [ ] **Ayuda** contiene Abrir log y Ayuda de Windows.
 - [ ] No hay botón inferior de herramientas.
 - [ ] La ventana muestra los cinco botones y el botón de tema sin recortes.
 - [ ] Cambiar entre modo claro y oscuro: no deben quedar marcos oscuros en modo claro.
-- [ ] Abrir el diálogo de **Limpiar Sistema** en modo oscuro y en modo claro: debe usar los colores del tema.
+- [ ] Abrir los diálogos de **Limpiar Sistema**, **Modo auto** y **Acerca de T4MW** en modo oscuro y en modo claro: deben usar los colores del tema.
 - [ ] Cerrar y volver a abrir la aplicación.
 
 ## 2. Actualizar todo el software
@@ -89,28 +89,44 @@ Marca cada casilla cuando el resultado coincida con lo esperado. Si algo falla, 
 - [ ] La interfaz no se congela y la consola permanece abierta al terminar.
 - [ ] Los dos comandos aparecen en el log.
 
-## 7. Más herramientas, Ayuda y Acerca de
+## 7. Modo auto
+
+- [ ] Pulsar **Modo auto** (barra superior): aparece un diálogo con las casillas **Actualizar software con Winget**, **Limpieza rápida** y **Diagnóstico rápido** marcadas por defecto.
+- [ ] El diálogo avisa de que no incluye reparación, papelera, limpieza completa ni diagnóstico completo.
+- [ ] Pulsar **Cancelar** o cerrar con Escape: no se ejecuta nada.
+- [ ] Desmarcar las tres casillas y pulsar **Ejecutar modo automático**: muestra un aviso y no abre ninguna consola.
+- [ ] Con las tres casillas marcadas, ejecutar: se abre **una sola consola** con siete pasos en este orden: Winget, tres de limpieza rápida y tres de diagnóstico rápido.
+- [ ] La consola muestra el banner `### Tools4meW - V.3 ###` y termina en `pause`.
+- [ ] El modo auto no vacía la papelera, no ejecuta `DISM /StartComponentCleanup` ni repara Windows.
+- [ ] Desmarcar **Actualizar software** y ejecutar: la consola no llama a `winget` y mantiene el orden limpieza → diagnóstico.
+- [ ] En un equipo sin `winget`, dejar marcada la actualización y ejecutar: muestra **Winget no disponible** y no abre la consola.
+- [ ] En ese mismo equipo, desmarcar la actualización y ejecutar limpieza + diagnóstico: funciona sin `winget`.
+- [ ] El log registra las tareas seleccionadas, el título `Mantenimiento automatico` y cada paso.
+
+## 8. Más herramientas, Ayuda y Acerca de
 
 - [ ] **Más herramientas → Crear punto de restauración**: pide confirmación y ejecuta `Checkpoint-Computer`. Si la Protección del sistema está desactivada, muestra el error en la consola sin cerrarla.
 - [ ] **Más herramientas → Análisis rápido de Defender**: pide confirmación, actualiza firmas y lanza un análisis rápido. Si hay otro antivirus, muestra el error en la consola.
-- [ ] **Acerca de T4MW** (barra superior): muestra la versión, el autor, GitHub y la licencia MIT.
+- [ ] **Acerca de T4MW** (barra superior): muestra la versión V.3, el autor, la licencia MIT y los botones **Abrir repositorio** y **Abrir perfil de GitHub**.
+- [ ] **Abrir repositorio** abre `https://github.com/DanSanMar/tools4mewindows` en el navegador.
+- [ ] **Abrir perfil de GitHub** abre `https://github.com/DanSanMar` en el navegador.
 - [ ] **Ayuda → Abrir log**: abre `%TEMP%\t4mw.log` en el editor predeterminado.
 - [ ] Si el log no existe, muestra un aviso en lugar de fallar.
 - [ ] **Ayuda → Ayuda de Windows**: abre el navegador en la página de ayuda de Windows.
 
-## 8. Log
+## 9. Log
 
 - [ ] `%TEMP%\t4mw.log` contiene `Iniciando T4MW V.3`.
 - [ ] Contiene `Ejecutando como administrador en ...`.
 - [ ] Contiene una línea `Ejecutando: ...` por cada secuencia y una línea por cada paso.
 
-## 9. Compilación y `.exe` (Fase 4)
+## 10. Compilación y `.exe` (Fase 4)
 
 - [ ] `pyinstaller Tools4MeW.spec` termina sin errores.
 - [ ] `dist\Tools4MeW.exe` arranca en un Windows sin Python instalado.
 - [ ] El `.exe` pide UAC, muestra el logo de cabecera, el icono de la ventana y la versión V.3.
 - [ ] El archivo `Tools4MeW.exe` muestra el icono personalizado en el Explorador.
-- [ ] Los cinco botones, los diálogos de modo, la barra superior y los menús funcionan igual que con Python.
+- [ ] Los cinco botones, los diálogos de modo, el Modo auto, la barra superior y los menús funcionan igual que con Python.
 - [ ] La limpieza rápida no rompe el `.exe` desinstalado: el directorio `_MEI*` de PyInstaller se conserva.
 - [ ] El `.exe` no intenta instalar Pillow con `pip` si falta la dependencia.
 

@@ -130,6 +130,59 @@ def comando_powershell(codigo):
         raise ValueError("El código PowerShell no debe contener comillas dobles")
     return f'powershell -NoProfile -Command "{codigo}"'
 
+COMANDO_ACTUALIZAR_WINGET = (
+    "winget upgrade --all --include-unknown "
+    "--accept-package-agreements --accept-source-agreements"
+)
+
+def pasos_limpieza_rapida():
+    """Pasos comunes de la limpieza rápida, sin papelera ni DISM."""
+    return [
+        (
+            "Limpiando temporales del usuario",
+            comando_powershell(
+                "Get-ChildItem -LiteralPath $env:TEMP -Force -ErrorAction SilentlyContinue | "
+                "Where-Object { $_.Name -notlike '_MEI*' -and $_.Name -ne 't4mw.log' } | "
+                "Remove-Item -Recurse -Force -ErrorAction SilentlyContinue"
+            ),
+        ),
+        (
+            "Limpiando temporales de Windows",
+            comando_powershell(
+                "Get-ChildItem -LiteralPath (Join-Path $env:WINDIR 'Temp') -Force -ErrorAction SilentlyContinue | "
+                "Where-Object { $_.Name -notlike '_MEI*' -and $_.Name -ne 't4mw.log' } | "
+                "Remove-Item -Recurse -Force -ErrorAction SilentlyContinue"
+            ),
+        ),
+        ("Vaciando cache DNS", "ipconfig /flushdns"),
+    ]
+
+def pasos_diagnostico_rapido():
+    """Pasos de diagnóstico de solo lectura."""
+    return [
+        (
+            "Comprobando la imagen de Windows con DISM",
+            "dism /online /cleanup-image /checkhealth",
+        ),
+        (
+            "Consultando discos y espacio",
+            comando_powershell(
+                "Get-PhysicalDisk | Format-List FriendlyName,HealthStatus,OperationalStatus; "
+                "Get-Volume | Select-Object DriveLetter,FileSystemLabel,"
+                "@{n='LibreGB';e={[math]::Round($_.SizeRemaining/1GB,1)}},"
+                "@{n='TotalGB';e={[math]::Round($_.Size/1GB,1)}} | Format-Table -AutoSize"
+            ),
+        ),
+        (
+            "Consultando estado de Defender",
+            comando_powershell(
+                "try { Get-MpComputerStatus | Format-List "
+                "AntivirusEnabled,RealTimeProtectionEnabled,AntivirusSignatureLastUpdated } "
+                "catch { Write-Host 'Defender no disponible' }"
+            ),
+        ),
+    ]
+
 def elegir_opcion(titulo, mensaje, opciones):
     """Muestra un diálogo modal con varias opciones y devuelve el valor elegido."""
     ventana = tk.Toplevel(app)
@@ -266,6 +319,114 @@ def elegir_limpieza():
     ventana.wait_window()
     return resultado["modo"], resultado["papelera"]
 
+def elegir_modo_auto():
+    """Diálogo para seleccionar las tareas del modo automático."""
+    ventana = tk.Toplevel(app)
+    ventana.title("Modo automático")
+    try:
+        ventana.iconbitmap(resource_path("LogoALL4meW.ico"))
+    except Exception:
+        pass
+    ventana.transient(app)
+    ventana.resizable(False, False)
+
+    bg = TEMA_ACTUAL.get("bg", "#f1f5f9")
+    fg = TEMA_ACTUAL.get("fg", "#0f172a")
+    btn_bg = TEMA_ACTUAL.get("btn", "#e2e8f0")
+    btn_hover = TEMA_ACTUAL.get("btn_hover", "#cbd5e1")
+    ventana.config(bg=bg)
+
+    contenido = tk.Frame(ventana, bg=bg, padx=20, pady=20)
+    contenido.pack(fill="both", expand=True)
+
+    tk.Label(
+        contenido,
+        text=(
+            "Selecciona las tareas que quieres ejecutar seguidas.\n\n"
+            "Las tareas marcadas se ejecutarán en este orden: actualización, "
+            "limpieza rápida y diagnóstico rápido. Se abrirá una sola consola. "
+            "La actualización puede tardar varios minutos."
+        ),
+        bg=bg, fg=fg, justify="left", wraplength=430, font=("Segoe UI", 11),
+    ).pack(pady=(0, 10))
+
+    var_actualizar = tk.BooleanVar(value=True)
+    var_limpiar = tk.BooleanVar(value=True)
+    var_diagnostico = tk.BooleanVar(value=True)
+
+    for texto, variable in (
+        ("Actualizar software con Winget", var_actualizar),
+        ("Limpieza rápida (temporales y DNS)", var_limpiar),
+        ("Diagnóstico rápido (solo lectura)", var_diagnostico),
+    ):
+        tk.Checkbutton(
+            contenido,
+            text=texto,
+            variable=variable,
+            bg=bg, fg=fg, selectcolor=btn_bg,
+            activebackground=bg, activeforeground=fg,
+            font=("Segoe UI", 10), anchor="w", justify="left",
+            cursor="hand2", highlightthickness=0, bd=0,
+        ).pack(fill="x", pady=2)
+
+    tk.Label(
+        contenido,
+        text=(
+            "No incluye reparación, papelera, limpieza completa ni diagnóstico completo."
+        ),
+        bg=bg, fg="#dc2626", justify="left", wraplength=430,
+        font=("Segoe UI", 9),
+    ).pack(fill="x", pady=(8, 12))
+
+    resultado = {"seleccion": None}
+
+    def ejecutar():
+        seleccion = {
+            "actualizar": bool(var_actualizar.get()),
+            "limpiar": bool(var_limpiar.get()),
+            "diagnostico": bool(var_diagnostico.get()),
+        }
+        if not any(seleccion.values()):
+            messagebox.showwarning(
+                "Modo automático",
+                "Selecciona al menos una tarea.",
+                parent=ventana,
+            )
+            return
+        resultado["seleccion"] = seleccion
+        ventana.destroy()
+
+    def cancelar():
+        ventana.destroy()
+
+    tk.Button(
+        contenido, text="Ejecutar modo automático", command=ejecutar,
+        font=("Segoe UI Semibold", 11), anchor="w", padx=12, pady=8,
+        bg=btn_bg, fg=fg, activebackground=btn_hover, activeforeground=fg,
+        relief="flat", cursor="hand2",
+    ).pack(fill="x", pady=3)
+
+    tk.Button(
+        contenido, text="Cancelar", command=cancelar,
+        font=("Segoe UI Semibold", 11), anchor="w", padx=12, pady=8,
+        bg=btn_bg, fg=fg, activebackground=btn_hover, activeforeground=fg,
+        relief="flat", cursor="hand2",
+    ).pack(fill="x", pady=3)
+
+    ventana.bind("<Escape>", lambda e: cancelar())
+    ventana.protocol("WM_DELETE_WINDOW", cancelar)
+
+    ventana.update_idletasks()
+    x = app.winfo_rootx() + (app.winfo_width() - ventana.winfo_reqwidth()) // 2
+    y = app.winfo_rooty() + (app.winfo_height() - ventana.winfo_reqheight()) // 2
+    ventana.geometry(f"+{max(x, 0)}+{max(y, 0)}")
+
+    ventana.wait_visibility()
+    ventana.grab_set()
+    ventana.focus_set()
+    ventana.wait_window()
+    return resultado["seleccion"]
+
 def construir_script(titulo, pasos):
     """Construye una línea de CMD con varios pasos numerados."""
     logo_ascii = f"### Tools4meW - {VERSION} ###"
@@ -317,20 +478,24 @@ def confirmar(titulo, mensaje):
     # El foco por defecto queda en "No" para evitar ejecuciones accidentales.
     return messagebox.askyesno(titulo, mensaje, icon="warning", default=messagebox.NO)
 
+def comprobar_winget():
+    """Comprueba si Winget está disponible y avisa si no lo está."""
+    if shutil.which("winget") is not None:
+        return True
+
+    logging.error("winget no encontrado en PATH")
+    messagebox.showerror(
+        "Winget no disponible",
+        "No se encontró 'winget' en el PATH.\n\n"
+        "Instala o actualiza 'App Installer' desde Microsoft Store y vuelve a intentarlo.",
+    )
+    return False
+
 def actualizar_winget():
     # Usa el gestor de paquetes nativo de Windows para actualizar todas las apps instaladas
-    if shutil.which("winget") is None:
-        logging.error("winget no encontrado en PATH")
-        messagebox.showerror(
-            "Winget no disponible",
-            "No se encontró 'winget' en el PATH.\n\n"
-            "Instala o actualiza 'App Installer' desde Microsoft Store y vuelve a intentarlo.",
-        )
+    if not comprobar_winget():
         return
-    ejecutar_externo(
-        "Actualizando Software con Winget",
-        "winget upgrade --all --include-unknown --accept-package-agreements --accept-source-agreements",
-    )
+    ejecutar_externo("Actualizando Software con Winget", COMANDO_ACTUALIZAR_WINGET)
 
 def limpiar_sistema():
     modo, incluir_papelera = elegir_limpieza()
@@ -339,25 +504,7 @@ def limpiar_sistema():
         return
 
     logging.info("Modo de limpieza: %s; papelera: %s", modo, incluir_papelera)
-    pasos = [
-        (
-            "Limpiando temporales del usuario",
-            comando_powershell(
-                "Get-ChildItem -LiteralPath $env:TEMP -Force -ErrorAction SilentlyContinue | "
-                "Where-Object { $_.Name -notlike '_MEI*' -and $_.Name -ne 't4mw.log' } | "
-                "Remove-Item -Recurse -Force -ErrorAction SilentlyContinue"
-            ),
-        ),
-        (
-            "Limpiando temporales de Windows",
-            comando_powershell(
-                "Get-ChildItem -LiteralPath (Join-Path $env:WINDIR 'Temp') -Force -ErrorAction SilentlyContinue | "
-                "Where-Object { $_.Name -notlike '_MEI*' -and $_.Name -ne 't4mw.log' } | "
-                "Remove-Item -Recurse -Force -ErrorAction SilentlyContinue"
-            ),
-        ),
-        ("Vaciando cache DNS", "ipconfig /flushdns"),
-    ]
+    pasos = pasos_limpieza_rapida()
 
     if incluir_papelera:
         pasos.append((
@@ -413,29 +560,7 @@ def diagnostico():
         return
 
     logging.info("Modo de diagnostico: %s", modo)
-    pasos = [
-        (
-            "Comprobando la imagen de Windows con DISM",
-            "dism /online /cleanup-image /checkhealth",
-        ),
-        (
-            "Consultando discos y espacio",
-            comando_powershell(
-                "Get-PhysicalDisk | Format-List FriendlyName,HealthStatus,OperationalStatus; "
-                "Get-Volume | Select-Object DriveLetter,FileSystemLabel,"
-                "@{n='LibreGB';e={[math]::Round($_.SizeRemaining/1GB,1)}},"
-                "@{n='TotalGB';e={[math]::Round($_.Size/1GB,1)}} | Format-Table -AutoSize"
-            ),
-        ),
-        (
-            "Consultando estado de Defender",
-            comando_powershell(
-                "try { Get-MpComputerStatus | Format-List "
-                "AntivirusEnabled,RealTimeProtectionEnabled,AntivirusSignatureLastUpdated } "
-                "catch { Write-Host 'Defender no disponible' }"
-            ),
-        ),
-    ]
+    pasos = pasos_diagnostico_rapido()
 
     if modo == "completo":
         pasos.insert(1, (
@@ -449,6 +574,35 @@ def diagnostico():
 
     titulo = "Diagnostico rapido" if modo == "rapido" else "Diagnostico completo"
     ejecutar_secuencia(titulo, pasos)
+
+def modo_auto():
+    """Ejecuta en una sola consola las tareas seleccionadas del modo automático."""
+    seleccion = elegir_modo_auto()
+    if seleccion is None:
+        logging.info("Modo automatico cancelado por el usuario")
+        return
+
+    if not any(seleccion.values()):
+        logging.warning("Modo automatico sin tareas seleccionadas")
+        return
+
+    if seleccion["actualizar"] and not comprobar_winget():
+        return
+
+    logging.info(
+        "Modo automatico: actualizar=%s; limpiar=%s; diagnostico=%s",
+        seleccion["actualizar"], seleccion["limpiar"], seleccion["diagnostico"],
+    )
+
+    pasos = []
+    if seleccion["actualizar"]:
+        pasos.append(("Actualizando software con Winget", COMANDO_ACTUALIZAR_WINGET))
+    if seleccion["limpiar"]:
+        pasos.extend(pasos_limpieza_rapida())
+    if seleccion["diagnostico"]:
+        pasos.extend(pasos_diagnostico_rapido())
+
+    ejecutar_secuencia("Mantenimiento automatico", pasos)
 
 def crear_punto_restauracion():
     if not confirmar(
@@ -504,28 +658,91 @@ def abrir_log():
         logging.exception("No se pudo abrir el log")
         messagebox.showerror("Log", f"No se pudo abrir el archivo de log:\n\n{e}")
 
-def abrir_ayuda_windows():
-    url = "https://support.microsoft.com/es-es/windows"
+def abrir_enlace(url, titulo):
+    """Abre un enlace en el navegador y avisa si no se puede."""
     try:
         os.startfile(url)
-        logging.info("Abriendo la ayuda de Windows: %s", url)
+        logging.info("Abriendo enlace (%s): %s", titulo, url)
     except Exception as e:
-        logging.exception("No se pudo abrir la ayuda de Windows")
-        messagebox.showerror(
-            "Ayuda de Windows",
-            f"No se pudo abrir el enlace de ayuda:\n\n{e}",
-        )
+        logging.exception("No se pudo abrir el enlace: %s", url)
+        messagebox.showerror(titulo, f"No se pudo abrir el enlace:\n\n{e}")
+
+def abrir_ayuda_windows():
+    abrir_enlace("https://support.microsoft.com/es-es/windows", "Ayuda de Windows")
 
 def acerca_de():
-    messagebox.showinfo(
-        f"Acerca de T4MW {VERSION}",
-        f"T4MW - All4me Group\n\n"
-        f"Versión {VERSION}\n"
-        "Herramientas de mantenimiento para Windows 10/11.\n\n"
-        "Desarrollado por DanSanMar.\n"
-        "https://github.com/DanSanMar/tools4mewindows\n\n"
-        "Licencia MIT.",
-    )
+    """Muestra la información del proyecto con enlaces al repositorio y al perfil."""
+    ventana = tk.Toplevel(app)
+    ventana.title("Acerca de T4MW")
+    try:
+        ventana.iconbitmap(resource_path("LogoALL4meW.ico"))
+    except Exception:
+        pass
+    ventana.transient(app)
+    ventana.resizable(False, False)
+
+    bg = TEMA_ACTUAL.get("bg", "#f1f5f9")
+    fg = TEMA_ACTUAL.get("fg", "#0f172a")
+    btn_bg = TEMA_ACTUAL.get("btn", "#e2e8f0")
+    btn_hover = TEMA_ACTUAL.get("btn_hover", "#cbd5e1")
+    ventana.config(bg=bg)
+
+    contenido = tk.Frame(ventana, bg=bg, padx=24, pady=20)
+    contenido.pack(fill="both", expand=True)
+
+    tk.Label(
+        contenido, text="T4MW - All4me Group",
+        bg=bg, fg=fg, font=("Segoe UI", 16, "bold"),
+    ).pack(pady=(0, 2))
+
+    tk.Label(
+        contenido, text=f"Versión {VERSION}",
+        bg=bg, fg=fg, font=("Segoe UI", 11),
+    ).pack(pady=(0, 12))
+
+    tk.Label(
+        contenido,
+        text=(
+            "Herramientas de mantenimiento para Windows 10/11.\n\n"
+            "Desarrollado por DanSanMar.\n"
+            "Licencia MIT."
+        ),
+        bg=bg, fg=fg, justify="center", font=("Segoe UI", 10),
+    ).pack(pady=(0, 15))
+
+    def abrir_repositorio():
+        abrir_enlace(
+            "https://github.com/DanSanMar/tools4mewindows",
+            "Repositorio T4MW",
+        )
+
+    def abrir_perfil():
+        abrir_enlace("https://github.com/DanSanMar", "Perfil de GitHub")
+
+    for texto, comando in (
+        ("Abrir repositorio", abrir_repositorio),
+        ("Abrir perfil de GitHub", abrir_perfil),
+        ("Cerrar", ventana.destroy),
+    ):
+        tk.Button(
+            contenido, text=texto, command=comando,
+            font=("Segoe UI Semibold", 11), anchor="w", padx=12, pady=8,
+            bg=btn_bg, fg=fg, activebackground=btn_hover, activeforeground=fg,
+            relief="flat", cursor="hand2",
+        ).pack(fill="x", pady=3)
+
+    ventana.bind("<Escape>", lambda e: ventana.destroy())
+    ventana.protocol("WM_DELETE_WINDOW", ventana.destroy)
+
+    ventana.update_idletasks()
+    x = app.winfo_rootx() + (app.winfo_width() - ventana.winfo_reqwidth()) // 2
+    y = app.winfo_rooty() + (app.winfo_height() - ventana.winfo_reqheight()) // 2
+    ventana.geometry(f"+{max(x, 0)}+{max(y, 0)}")
+
+    ventana.wait_visibility()
+    ventana.grab_set()
+    ventana.focus_set()
+    ventana.wait_window()
 
 # --- INTERFAZ GRÁFICA (FRONTEND) ---
 try:
@@ -579,6 +796,13 @@ try:
     poblar_menu_mas(menu_mas)
     btn_menu_mas.config(menu=menu_mas)
     btn_menu_mas.pack(side="right", padx=2, pady=2)
+
+    btn_modo_auto = tk.Button(
+        barra_menus, text="  Modo auto  ", command=modo_auto,
+        font=("Segoe UI", 10), relief="flat", bd=0,
+        highlightthickness=0, cursor="hand2",
+    )
+    btn_modo_auto.pack(side="right", padx=2, pady=2)
 
     linea_menus = tk.Frame(app, height=1)
     linea_menus.pack(fill="x")
@@ -645,7 +869,7 @@ try:
         for btn in botones:
             btn.config(bg=btn_bg, fg=fg_primary, activebackground=btn_hover, activeforeground=fg_primary)
             
-        for btn_menu in (btn_menu_mas, btn_menu_acerca, btn_menu_ayuda):
+        for btn_menu in (btn_modo_auto, btn_menu_mas, btn_menu_acerca, btn_menu_ayuda):
             btn_menu.config(
                 bg=bg_main, fg=fg_primary,
                 activebackground=btn_hover, activeforeground=fg_primary,
