@@ -49,10 +49,6 @@ def resource_path(relative_path):
     base_path = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
     return os.path.join(base_path, relative_path)
 
-# Ahora usa la función para cargar tu imagen
-ruta_al_logo = resource_path("LogoALL4meW.png")
-# Ejemplo: self.logo = PhotoImage(file=ruta_al_logo)
-
 # --- CLASE PARA TOOLTIPS (EXPLICACIÓN) ---
 # Esta clase crea pequeñas ventanas flotantes de ayuda cuando pasas el ratón 
 # sobre un botón. Maneja eventos de entrada (<Enter>) y salida (<Leave>).
@@ -99,15 +95,19 @@ class Tooltip:
 def es_admin():
     try:
         return ctypes.windll.shell32.IsUserAnAdmin()
-    except:
+    except Exception:
         return False
 
 if not es_admin():
     try:
         # Obtenemos la ruta absoluta del script actual
         script_path = os.path.abspath(sys.argv[0])
-        # Intentamos elevar privilegios
-        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, f'"{script_path}"', None, 1)
+        # Intentamos elevar privilegios. ShellExecuteW devuelve <= 32 si falla.
+        resultado = ctypes.windll.shell32.ShellExecuteW(
+            None, "runas", sys.executable, f'"{script_path}"', None, 1
+        )
+        if resultado <= 32:
+            raise OSError(f"ShellExecuteW devolvió {resultado}")
         sys.exit()
     except Exception as e:
         print(f"Error crítico al elevar privilegios: {e}")
@@ -231,8 +231,9 @@ def ejecutar_externo(titulo, comando):
     ejecutar_secuencia(titulo, [(titulo, comando)])
 
 def confirmar(titulo, mensaje):
-    # Pide confirmación antes de una acción larga o destructiva
-    return messagebox.askyesno(titulo, mensaje, icon="warning")
+    # Pide confirmación antes de una acción larga o destructiva.
+    # El foco por defecto queda en "No" para evitar ejecuciones accidentales.
+    return messagebox.askyesno(titulo, mensaje, icon="warning", default=messagebox.NO)
 
 def actualizar_winget():
     # Usa el gestor de paquetes nativo de Windows para actualizar todas las apps instaladas
@@ -383,6 +384,23 @@ def crear_punto_restauracion():
         ),
     )
 
+def vaciar_papelera():
+    if not confirmar(
+        "Vaciar papelera de reciclaje",
+        "Se eliminarán de forma permanente todos los archivos de la papelera "
+        "de reciclaje.\n\nEsta acción no se puede deshacer. ¿Quieres continuar?",
+    ):
+        return
+
+    ejecutar_externo(
+        "Vaciando papelera de reciclaje",
+        comando_powershell(
+            "try { Clear-RecycleBin -Force -ErrorAction Stop; "
+            "Write-Host 'Papelera vaciada.' } "
+            "catch { Write-Host ('Aviso: ' + $_.Exception.Message) }"
+        ),
+    )
+
 def analizar_defender():
     if not confirmar(
         "Análisis rápido de Defender",
@@ -437,6 +455,7 @@ try:
     menubar = tk.Menu(app)
     menu_herramientas = tk.Menu(menubar, tearoff=0)
     menu_herramientas.add_command(label="Crear punto de restauración", command=crear_punto_restauracion)
+    menu_herramientas.add_command(label="Vaciar papelera de reciclaje", command=vaciar_papelera)
     menu_herramientas.add_command(label="Análisis rápido de Defender", command=analizar_defender)
     menu_herramientas.add_separator()
     menu_herramientas.add_command(label="Abrir Windows Update", command=abrir_windows_update)
@@ -549,7 +568,7 @@ try:
         Tooltip(btn, descripcion) # Asigna la ayuda flotante
 
     # --- DEFINICIÓN DE BOTONES ---
-    crear_boton_moderno("Actualizar Todo el Software", actualizar_winget, "Actualiza las aplicaciones instaladas con Winget.", "📦")
+    crear_boton_moderno("Actualizar Todo el Software", actualizar_winget, "Actualiza apps con Winget.\nWindows Update: menú Herramientas.", "📦")
     crear_boton_moderno("Limpiar Sistema", limpiar_sistema, "Limpieza rápida (temporales y DNS) o completa (incluye DISM).", "🧹")
     crear_boton_moderno("Reparar Windows", reparar_windows, "Ejecuta DISM /RestoreHealth y SFC /scannow.", "🛠")
     crear_boton_moderno("Diagnóstico", diagnostico, "Comprueba Windows, los discos y Defender sin modificar nada.", "🩺")
@@ -564,6 +583,7 @@ try:
 
 except Exception as e:
     # Captura cualquier error de inicio (como falta de fuentes o permisos) para que no se cierre sin avisar
+    logging.exception("Error crítico al iniciar la aplicación")
     root_err = tk.Tk()
     root_err.withdraw()
     messagebox.showerror("Error Crítico", f"Se produjo un error al iniciar la aplicación:\n\n{e}")

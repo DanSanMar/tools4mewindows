@@ -22,8 +22,9 @@ El menú principal se reduce a cuatro acciones claras:
 El menú **Herramientas** contiene las acciones secundarias:
 
 - Crear un punto de restauración.
+- Vaciar la papelera de reciclaje (con confirmación; es irreversible).
 - Análisis rápido con Windows Defender.
-- Abrir Windows Update (winget actualiza aplicaciones, no Windows).
+- Abrir Windows Update (winget actualiza aplicaciones, no Windows; este acceso abre Configuración).
 - Abrir el log.
 
 Las acciones largas piden confirmación antes de ejecutarse. La limpieza y el diagnóstico permiten elegir entre modo rápido y completo. Si `winget` no está disponible, la aplicación avisa en lugar de fallar.
@@ -34,6 +35,7 @@ Las acciones largas piden confirmación antes de ejecutarse. La limpieza y el di
 |--------|--------|
 | Limpieza rápida | 1-2 minutos |
 | Limpieza completa | 10-30 minutos |
+| Vaciar papelera | Depende del tamaño |
 | Reparar Windows | 20-60 minutos |
 | Diagnóstico rápido | 1-3 minutos |
 | Diagnóstico completo | 5-20 minutos |
@@ -106,7 +108,7 @@ Este script ejecuta comandos que modifican archivos del sistema y registros de a
 - 🚦 No ejecutes dos acciones largas a la vez: espera a que termine la consola.
 - 💾 Crear un punto de restauración antes de usar **Reparar Windows**.
 - ⏱️ Tener paciencia durante SFC, DISM y `chkdsk`; pueden tardar varios minutos y la consola no debe cerrarse.
-- 🧹 La limpieza no vacía la papelera de reciclaje ni toca documentos personales.
+- 🧹 La limpieza de temporales no vacía la papelera ni toca documentos personales. Para vaciarla, usa **Herramientas → Vaciar papelera de reciclaje**; esa acción es irreversible.
 - ℹ️ La limpieza completa elimina componentes de actualizaciones anteriores y puede impedir desinstalar algunas actualizaciones.
 - ⚖️ **Responsabilidad**: el autor no se hace responsable de un uso indebido de las herramientas.
 

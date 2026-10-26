@@ -15,12 +15,13 @@ Marca cada casilla cuando el resultado coincida con lo esperado. Si algo falla, 
 ## 1. Arranque y menú
 
 - [ ] Ejecutar `python t4mw.py` sin administrador: debe aparecer el UAC y relanzarse elevado.
+- [ ] Cancelar el UAC: la consola muestra `Error crítico al elevar privilegios` y espera a que pulses Enter; no se queda colgada.
 - [ ] El título de la ventana muestra `T4MW - All4me Group (V.3)`.
 - [ ] La cabecera muestra `T O O L S 4 M E W - V.3`.
 - [ ] Se ven el icono y el logo.
 - [ ] El menú principal tiene exactamente cuatro botones: **Actualizar Todo el Software**, **Limpiar Sistema**, **Reparar Windows** y **Diagnóstico**.
 - [ ] No aparecen las acciones antiguas de RAM ni de reiniciar Explorer.
-- [ ] El menú **Herramientas** contiene punto de restauración, análisis de Defender, Windows Update y log.
+- [ ] El menú **Herramientas** contiene punto de restauración, papelera, análisis de Defender, Windows Update y log.
 - [ ] La ventana muestra los cuatro botones y el botón de tema sin recortes.
 - [ ] Cambiar entre modo claro y oscuro: no deben quedar marcos oscuros en modo claro.
 - [ ] Abrir el diálogo de **Limpiar Sistema** en modo oscuro y en modo claro: debe usar los colores del tema.
@@ -51,11 +52,13 @@ Marca cada casilla cuando el resultado coincida con lo esperado. Si algo falla, 
 - [ ] La consola muestra cuatro pasos e incluye `dism /online /cleanup-image /startcomponentcleanup`.
 - [ ] La consola permanece abierta al terminar, aunque DISM tarde.
 - [ ] Los pasos aparecen en el log.
+- [ ] Antes de la limpieza, envía un archivo de prueba a la papelera.
 - [ ] Comprobar que no se ha vaciado la papelera de reciclaje ni se han tocado documentos personales.
 
 ## 5. Reparar Windows
 
 - [ ] Pulsar **Reparar Windows**: aparece una confirmación con el aviso de duración.
+- [ ] El botón predeterminado de la confirmación es **No**: pulsar Enter no ejecuta la reparación.
 - [ ] Pulsar **No**: no se ejecuta nada.
 - [ ] Aceptar: se ejecuta primero `DISM /Online /Cleanup-Image /RestoreHealth` y después `SFC /scannow`.
 - [ ] La interfaz no se congela y la consola permanece abierta al terminar.
@@ -74,6 +77,10 @@ Marca cada casilla cuando el resultado coincida con lo esperado. Si algo falla, 
 ## 7. Herramientas
 
 - [ ] **Crear punto de restauración**: pide confirmación y ejecuta `Checkpoint-Computer`. Si la Protección del sistema está desactivada, muestra el error en la consola sin cerrarla.
+- [ ] Antes de probar la papelera, crea un archivo de prueba y envíalo a la papelera. No uses archivos personales.
+- [ ] **Vaciar papelera de reciclaje**: pide confirmación; **No** no hace nada; **Sí** ejecuta `Clear-RecycleBin -Force` y la papelera queda vacía.
+- [ ] La consola muestra `Papelera vaciada.` o un aviso legible si ya estaba vacía.
+- [ ] La acción de papelera queda registrada en el log.
 - [ ] **Análisis rápido de Defender**: pide confirmación, actualiza firmas y lanza un análisis rápido. Si hay otro antivirus, muestra el error en la consola.
 - [ ] **Abrir Windows Update**: abre la página de Windows Update en Configuración.
 - [ ] **Abrir log**: abre `%TEMP%\t4mw.log` en el editor predeterminado.
