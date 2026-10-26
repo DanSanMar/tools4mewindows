@@ -7,7 +7,7 @@ from tkinter import messagebox
 import subprocess
 import shutil
 
-VERSION = "V.3"
+VERSION = "V.4"
 
 # --- LOGGING A ARCHIVO TEMPORAL (útil cuando se ejecuta como .exe sin consola) ---
 log_path = os.path.join(os.environ.get("TEMP", "."), "t4mw.log")
@@ -766,45 +766,47 @@ try:
         menu.add_command(label="Abrir log", command=abrir_log)
         menu.add_command(label="Ayuda de Windows", command=abrir_ayuda_windows)
 
-    barra_menus = tk.Frame(app)
+    barra_menus = tk.Frame(app, bd=0, highlightthickness=0)
     barra_menus.pack(fill="x", side="top")
+    for columna in range(4):
+        barra_menus.grid_columnconfigure(columna, weight=1, uniform="pestanas")
 
-    # Se empaquetan de derecha a izquierda: Ayuda queda en el extremo derecho.
+    # Cuatro pestañas de ancho uniforme: Modo auto, Más, Acerca y Ayuda.
     btn_menu_ayuda = tk.Menubutton(
-        barra_menus, text="  Ayuda  ",
-        font=("Segoe UI", 10), relief="flat", bd=0,
-        highlightthickness=0, cursor="hand2",
+        barra_menus, text="Ayuda",
+        font=("Segoe UI Semibold", 10), relief="flat", bd=0,
+        padx=8, pady=6, highlightthickness=0, cursor="hand2",
     )
     menu_ayuda = tk.Menu(btn_menu_ayuda, tearoff=0)
     poblar_menu_ayuda(menu_ayuda)
     btn_menu_ayuda.config(menu=menu_ayuda)
-    btn_menu_ayuda.pack(side="right", padx=2, pady=2)
+    btn_menu_ayuda.grid(row=0, column=3, sticky="ew", padx=1, pady=2)
 
     btn_menu_acerca = tk.Button(
-        barra_menus, text="  Acerca de T4MW  ", command=acerca_de,
-        font=("Segoe UI", 10), relief="flat", bd=0,
-        highlightthickness=0, cursor="hand2",
+        barra_menus, text="Acerca de T4MW", command=acerca_de,
+        font=("Segoe UI Semibold", 10), relief="flat", bd=0,
+        padx=8, pady=6, highlightthickness=0, cursor="hand2",
     )
-    btn_menu_acerca.pack(side="right", padx=2, pady=2)
+    btn_menu_acerca.grid(row=0, column=2, sticky="ew", padx=1, pady=2)
 
     btn_menu_mas = tk.Menubutton(
-        barra_menus, text="  Más herramientas  ",
-        font=("Segoe UI", 10), relief="flat", bd=0,
-        highlightthickness=0, cursor="hand2",
+        barra_menus, text="Más herramientas",
+        font=("Segoe UI Semibold", 10), relief="flat", bd=0,
+        padx=8, pady=6, highlightthickness=0, cursor="hand2",
     )
     menu_mas = tk.Menu(btn_menu_mas, tearoff=0)
     poblar_menu_mas(menu_mas)
     btn_menu_mas.config(menu=menu_mas)
-    btn_menu_mas.pack(side="right", padx=2, pady=2)
+    btn_menu_mas.grid(row=0, column=1, sticky="ew", padx=1, pady=2)
 
     btn_modo_auto = tk.Button(
-        barra_menus, text="  Modo auto  ", command=modo_auto,
-        font=("Segoe UI", 10), relief="flat", bd=0,
-        highlightthickness=0, cursor="hand2",
+        barra_menus, text="Modo auto", command=modo_auto,
+        font=("Segoe UI Semibold", 10), relief="flat", bd=0,
+        padx=8, pady=6, highlightthickness=0, cursor="hand2",
     )
-    btn_modo_auto.pack(side="right", padx=2, pady=2)
+    btn_modo_auto.grid(row=0, column=0, sticky="ew", padx=1, pady=2)
 
-    linea_menus = tk.Frame(app, height=1)
+    linea_menus = tk.Frame(app, height=2)
     linea_menus.pack(fill="x")
 
     # --- CARGA DEL LOGO ALL4MEW ---
@@ -829,6 +831,12 @@ try:
             accent = "#38bdf8"      # Azul brillante
             btn_bg = "#334155"
             btn_hover = "#475569"
+            barra_bg = "#172554"    # Azul muy oscuro para las pestañas
+            barra_hover = "#1e3a8a"
+            barra_borde = "#38bdf8"
+            btn_accion_bg = "#1e3a8a"
+            btn_accion_hover = "#1e40af"
+            btn_accion_borde = "#0ea5e9"
         else:
             bg_main = "#f1f5f9"     # Colores claros/grises
             fg_primary = "#0f172a"
@@ -836,6 +844,12 @@ try:
             accent = "#0284c7"
             btn_bg = "#e2e8f0"
             btn_hover = "#cbd5e1"
+            barra_bg = "#dbeafe"    # Azul claro para las pestañas
+            barra_hover = "#bfdbfe"
+            barra_borde = "#93c5fd"
+            btn_accion_bg = "#e0f2fe"
+            btn_accion_hover = "#bae6fd"
+            btn_accion_borde = "#7dd3fc"
 
         # Guardamos la paleta para que los diálogos modales la usen
         TEMA_ACTUAL.update({
@@ -844,12 +858,18 @@ try:
             "btn": btn_bg,
             "btn_hover": btn_hover,
             "accent": accent,
+            "barra": barra_bg,
+            "barra_hover": barra_hover,
+            "barra_borde": barra_borde,
+            "btn_accion": btn_accion_bg,
+            "btn_accion_hover": btn_accion_hover,
+            "btn_accion_borde": btn_accion_borde,
         })
 
         # Aplicación de los colores a cada componente
         app.config(bg=bg_main)
-        barra_menus.config(bg=bg_main)
-        linea_menus.config(bg=btn_bg)
+        barra_menus.config(bg=barra_bg)
+        linea_menus.config(bg=barra_borde)
         logo_frame.config(bg=bg_main)
         
         # Lógica de colores para el logo (por si falla la imagen, usa el rayo)
@@ -865,14 +885,17 @@ try:
         
         # Bucle para actualizar cada botón creado
         for frame in frames_botones:
-            frame.config(bg=bg_main)
+            frame.config(bg=btn_accion_borde)
         for btn in botones:
-            btn.config(bg=btn_bg, fg=fg_primary, activebackground=btn_hover, activeforeground=fg_primary)
-            
+            btn.config(
+                bg=btn_accion_bg, fg=fg_primary,
+                activebackground=btn_accion_hover, activeforeground=fg_primary,
+            )
+
         for btn_menu in (btn_modo_auto, btn_menu_mas, btn_menu_acerca, btn_menu_ayuda):
             btn_menu.config(
-                bg=bg_main, fg=fg_primary,
-                activebackground=btn_hover, activeforeground=fg_primary,
+                bg=barra_bg, fg=fg_primary,
+                activebackground=barra_hover, activeforeground=fg_primary,
             )
 
         btn_tema.config(
@@ -912,10 +935,11 @@ try:
         frames_botones.append(frame_btn)
         
         full_text = f"  {icono}   {texto}"
-        btn = tk.Button(frame_btn, text=full_text, font=("Segoe UI Semibold", 14), 
+        btn = tk.Button(frame_btn, text=full_text, font=("Segoe UI Semibold", 14),
                        anchor="w", padx=20, pady=8,
-                       relief="flat", cursor="hand2", command=comando)
-        btn.pack(fill="x")
+                       relief="flat", bd=0, highlightthickness=0,
+                       cursor="hand2", command=comando)
+        btn.pack(fill="x", padx=1, pady=1)
         botones.append(btn)
         Tooltip(btn, descripcion) # Asigna la ayuda flotante
 

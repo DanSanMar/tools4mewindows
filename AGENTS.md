@@ -8,7 +8,7 @@ Single-file Python Tkinter GUI for Windows system maintenance. The only source f
 - Requires Administrator; the script auto-elevates via UAC (`ctypes.shell32.ShellExecuteW` with `runas`), then `os.chdir`s to the script directory.
 - Dependency: `pillow` (PIL). The script auto-installs it at runtime via `pip install pillow` if missing — requires network. Pre-install with `pip install -r requirements.txt` (this also installs PyInstaller).
 - Logs to `%TEMP%\t4mw.log`.
-- Main actions: update (winget), open Windows Update (Settings), clean (quick/complete, optional recycle bin), diagnose (quick/complete), repair (DISM + SFC). The custom right-aligned top bar contains "Modo auto" (runs update + quick cleanup + quick diagnostic in one console), "Más herramientas" (restore point, Defender), "Acerca de T4MW" (version, repo/profile links, license), and "Ayuda" (log, Windows support link).
+- Main actions: update (winget), open Windows Update (Settings), clean (quick/complete, optional recycle bin), diagnose (quick/complete), repair (DISM + SFC). The full-width top bar has four equal-width tabs: "Modo auto" (runs update + quick cleanup + quick diagnostic in one console), "Más herramientas" (restore point, Defender), "Acerca de T4MW" (version, repo/profile links, license), and "Ayuda" (log, Windows support link).
 
 ## Build `.exe`
 - Canonical: `pyinstaller Tools4MeW.spec` (icon `LogoALL4meW.ico`, `console=True`, embeds `LogoALL4meW.png` and `LogoALL4meW.ico`, output name `Tools4MeW`).
@@ -20,7 +20,7 @@ Single-file Python Tkinter GUI for Windows system maintenance. The only source f
 
 ## Docs
 - `README.md` covers features and installation; `CONVERTIR_A_EXE.md` covers packaging; `PRUEBAS.md` is the manual checklist for validating a release on Windows. Keep them in sync when behavior changes.
-- The version is defined once in `VERSION` (`t4mw.py`) and used in the window title, header, and console banner. Current version: V.3. Keep the README badge in sync.
+- The version is defined once in `VERSION` (`t4mw.py`) and used in the window title, header, and console banner. Current version: V.4. Keep the README badge in sync.
 
 ## Gotchas
 - `LogoALL4meW.png` is tracked in git even though `.gitignore` lists it; `.gitignore` does not affect already-tracked files.
@@ -29,7 +29,8 @@ Single-file Python Tkinter GUI for Windows system maintenance. The only source f
 - The temp-cleanup step must keep excluding `_MEI*` and `t4mw.log`: `_MEI*` is the running onefile bundle, and the log is open. Do not replace it with a blanket `del "%TEMP%\*"`.
 - Emptying the recycle bin is an explicit opt-in checkbox in the cleanup dialog (`Clear-RecycleBin -Force`), default off; it permanently deletes personal files. Keep the checkbox opt-in and its permanent-deletion warning; do not make it part of routine cleanup by default.
 - Destructive confirmations (repair, restore point, Defender) use `default=messagebox.NO`; keep that default so Enter does not trigger an irreversible action. The recycle-bin option is an explicit checkbox, default off.
-- The top menu bar is a custom right-aligned frame with Menubuttons plus top-level "Modo auto" and "Acerca de T4MW" buttons. Visual order is Modo auto, Más herramientas, Acerca de T4MW, Ayuda; Ayuda stays rightmost. The native Tk menubar cannot align cascades to the right. Keep the dropdowns and do not reintroduce the footer tools button.
+- The top menu bar is a custom full-width grid with four equal-width tabs: Menubuttons for "Más herramientas"/"Ayuda" plus top-level "Modo auto"/"Acerca de T4MW" buttons. Visual order is Modo auto, Más herramientas, Acerca de T4MW, Ayuda; Ayuda stays rightmost. Tabs use a blue bar background with a 2px accent line. The native Tk menubar cannot align cascades to the right; do not reintroduce the footer tools button.
+- Main action buttons use a soft blue background plus a 1px frame border. `aplicar_tema()` must update both `frames_botones` (border) and `botones` (fill); keep light/dark contrast readable.
 - "Modo auto" must stay limited to Winget update, quick cleanup, and quick diagnostic in one console; reuse `pasos_limpieza_rapida()` and `pasos_diagnostico_rapido()`. Do not add repair, recycle bin, complete cleanup, or complete diagnostic to it.
 - The About dialog is a custom modal with buttons for the repository (`https://github.com/DanSanMar/tools4mewindows`) and the author profile (`https://github.com/DanSanMar`); both use `abrir_enlace()`. Keep both links and the MIT license text.
 - The main-window "Abrir Windows Update" button only opens Settings (`ms-settings:windowsupdate`); it does not install updates. Winget handles apps, not Windows.

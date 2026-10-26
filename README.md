@@ -3,7 +3,7 @@
 
 **T4MW (Tools4me Windows)** es una suite de mantenimiento ligera y potente escrita en Python. Está diseñada para centralizar las tareas de optimización más comunes de Windows en una interfaz gráfica moderna, intuitiva y fácil de usar, eliminando la necesidad de recordar comandos complejos de la terminal.
 
-![Versión](https://img.shields.io/badge/Versi%C3%B3n-V.3-blue)
+![Versión](https://img.shields.io/badge/Versi%C3%B3n-V.4-blue)
 ![Python](https://img.shields.io/badge/Python-3.x-green)
 ![OS](https://img.shields.io/badge/OS-Windows-informational)
 ![Licencia](https://img.shields.io/badge/Licencia-MIT-yellow)
@@ -20,7 +20,7 @@ El menú principal tiene cinco acciones claras:
 * **🩺 Diagnóstico**: solo lectura. Comprueba la imagen de Windows, los discos y Defender; el modo completo añade análisis del almacén de componentes y `chkdsk`.
 * **🛠 Reparar Windows**: ejecuta `DISM /RestoreHealth` y después `SFC /scannow` en una sola consola.
 
-La barra superior, alineada a la derecha, contiene:
+La barra superior ocupa todo el ancho y contiene cuatro pestañas con fondo azul claro:
 
 - **Modo auto**: ejecuta en una sola consola la actualización con `winget`, la limpieza rápida y el diagnóstico rápido. Puedes marcar o desmarcar cada tarea; no incluye reparación, papelera, limpieza completa ni diagnóstico completo.
 - **Más herramientas**: crear un punto de restauración y análisis rápido con Windows Defender.
@@ -51,7 +51,8 @@ T4MW incluye un **sistema de temas dinámico**:
 - **Modo oscuro**: para reducir la fatiga visual (estética slate/azul).
 - **Modo claro**: interfaz limpia y profesional.
 - **Tooltips informativos**: cada botón muestra una breve explicación de lo que hace al pasar el ratón.
-- **Barra superior alineada a la derecha**: Modo auto, Más herramientas, Acerca de T4MW y Ayuda.
+- **Barra superior de ancho completo**: cuatro pestañas iguales con fondo azul claro y borde inferior de acento.
+- **Botones principales con color suave**: fondo azul claro y borde fino para distinguirlos sin recargar la interfaz.
 
 ---
 

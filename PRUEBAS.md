@@ -1,12 +1,12 @@
-# Pruebas de T4MW V.3 — Fase 3
+# Pruebas de T4MW V.4
 
-Checklist para validar la versión **V.3** en Windows 10/11 antes de compilar y distribuir el `.exe`.
+Checklist para validar la versión **V.4** en Windows 10/11 antes de compilar y distribuir el `.exe`.
 
 Marca cada casilla cuando el resultado coincida con lo esperado. Si algo falla, anota el paso, el mensaje y la hora para revisar `%TEMP%\t4mw.log`.
 
 ## Preparación
 
-- [ ] `git pull origin mejora-fase1`
+- [ ] `git pull origin main`
 - [ ] `pip install -r requirements.txt`
 - [ ] Cerrar aplicaciones importantes antes de las pruebas de limpieza.
 - [ ] No ejecutar dos acciones largas a la vez; esperar a que termine cada consola.
@@ -16,24 +16,26 @@ Marca cada casilla cuando el resultado coincida con lo esperado. Si algo falla, 
 
 - [ ] Ejecutar `python t4mw.py` sin administrador: debe aparecer el UAC y relanzarse elevado.
 - [ ] Cancelar el UAC: la consola muestra `Error crítico al elevar privilegios` y espera a que pulses Enter; no se queda colgada.
-- [ ] El título de la ventana muestra `T4MW - All4me Group (V.3)`.
-- [ ] La cabecera muestra `T O O L S 4 M E W - V.3`.
+- [ ] El título de la ventana muestra `T4MW - All4me Group (V.4)`.
+- [ ] La cabecera muestra `T O O L S 4 M E W - V.4`.
 - [ ] Se ven el icono y el logo.
 - [ ] El menú principal tiene exactamente cinco botones: **Actualizar Todo el Software**, **Abrir Windows Update**, **Limpiar Sistema**, **Diagnóstico** y **Reparar Windows**.
 - [ ] No aparecen las acciones antiguas de RAM ni de reiniciar Explorer.
-- [ ] La barra superior está alineada a la derecha y muestra **Modo auto**, **Más herramientas**, **Acerca de T4MW** y **Ayuda**, con **Ayuda** en el extremo derecho.
+- [ ] La barra superior ocupa todo el ancho y muestra cuatro pestañas iguales: **Modo auto**, **Más herramientas**, **Acerca de T4MW** y **Ayuda**, con **Ayuda** en el extremo derecho.
+- [ ] Las pestañas tienen fondo azul claro y una línea inferior de acento; el texto se lee bien.
 - [ ] **Más herramientas** contiene punto de restauración y análisis de Defender.
 - [ ] **Ayuda** contiene Abrir log y Ayuda de Windows.
 - [ ] No hay botón inferior de herramientas.
-- [ ] La ventana muestra los cinco botones y el botón de tema sin recortes.
-- [ ] Cambiar entre modo claro y oscuro: no deben quedar marcos oscuros en modo claro.
+- [ ] La ventana muestra los cinco botones, las pestañas y el botón de tema sin recortes.
+- [ ] Los cinco botones tienen un fondo azul suave y un borde fino, sin que el texto pierda legibilidad.
+- [ ] Cambiar entre modo claro y oscuro: las pestañas pasan a azul oscuro y los botones mantienen el contraste; no deben quedar marcos oscuros en modo claro.
 - [ ] Abrir los diálogos de **Limpiar Sistema**, **Modo auto** y **Acerca de T4MW** en modo oscuro y en modo claro: deben usar los colores del tema.
 - [ ] Cerrar y volver a abrir la aplicación.
 
 ## 2. Actualizar todo el software
 
 - [ ] Pulsar **Actualizar Todo el Software**: se abre una consola nueva.
-- [ ] La consola muestra el banner `### Tools4meW - V.3 ###`.
+- [ ] La consola muestra el banner `### Tools4meW - V.4 ###`.
 - [ ] Se ejecuta `winget upgrade --all ...` y lista las actualizaciones disponibles.
 - [ ] Al terminar, la consola se queda en `pause`.
 - [ ] El comando aparece en `%TEMP%\t4mw.log`.
@@ -96,7 +98,7 @@ Marca cada casilla cuando el resultado coincida con lo esperado. Si algo falla, 
 - [ ] Pulsar **Cancelar** o cerrar con Escape: no se ejecuta nada.
 - [ ] Desmarcar las tres casillas y pulsar **Ejecutar modo automático**: muestra un aviso y no abre ninguna consola.
 - [ ] Con las tres casillas marcadas, ejecutar: se abre **una sola consola** con siete pasos en este orden: Winget, tres de limpieza rápida y tres de diagnóstico rápido.
-- [ ] La consola muestra el banner `### Tools4meW - V.3 ###` y termina en `pause`.
+- [ ] La consola muestra el banner `### Tools4meW - V.4 ###` y termina en `pause`.
 - [ ] El modo auto no vacía la papelera, no ejecuta `DISM /StartComponentCleanup` ni repara Windows.
 - [ ] Desmarcar **Actualizar software** y ejecutar: la consola no llama a `winget` y mantiene el orden limpieza → diagnóstico.
 - [ ] En un equipo sin `winget`, dejar marcada la actualización y ejecutar: muestra **Winget no disponible** y no abre la consola.
@@ -107,7 +109,7 @@ Marca cada casilla cuando el resultado coincida con lo esperado. Si algo falla, 
 
 - [ ] **Más herramientas → Crear punto de restauración**: pide confirmación y ejecuta `Checkpoint-Computer`. Si la Protección del sistema está desactivada, muestra el error en la consola sin cerrarla.
 - [ ] **Más herramientas → Análisis rápido de Defender**: pide confirmación, actualiza firmas y lanza un análisis rápido. Si hay otro antivirus, muestra el error en la consola.
-- [ ] **Acerca de T4MW** (barra superior): muestra la versión V.3, el autor, la licencia MIT y los botones **Abrir repositorio** y **Abrir perfil de GitHub**.
+- [ ] **Acerca de T4MW** (barra superior): muestra la versión V.4, el autor, la licencia MIT y los botones **Abrir repositorio** y **Abrir perfil de GitHub**.
 - [ ] **Abrir repositorio** abre `https://github.com/DanSanMar/tools4mewindows` en el navegador.
 - [ ] **Abrir perfil de GitHub** abre `https://github.com/DanSanMar` en el navegador.
 - [ ] **Ayuda → Abrir log**: abre `%TEMP%\t4mw.log` en el editor predeterminado.
@@ -116,15 +118,15 @@ Marca cada casilla cuando el resultado coincida con lo esperado. Si algo falla, 
 
 ## 9. Log
 
-- [ ] `%TEMP%\t4mw.log` contiene `Iniciando T4MW V.3`.
+- [ ] `%TEMP%\t4mw.log` contiene `Iniciando T4MW V.4`.
 - [ ] Contiene `Ejecutando como administrador en ...`.
 - [ ] Contiene una línea `Ejecutando: ...` por cada secuencia y una línea por cada paso.
 
-## 10. Compilación y `.exe` (Fase 4)
+## 10. Compilación y `.exe`
 
 - [ ] `pyinstaller Tools4MeW.spec` termina sin errores.
 - [ ] `dist\Tools4MeW.exe` arranca en un Windows sin Python instalado.
-- [ ] El `.exe` pide UAC, muestra el logo de cabecera, el icono de la ventana y la versión V.3.
+- [ ] El `.exe` pide UAC, muestra el logo de cabecera, el icono de la ventana y la versión V.4.
 - [ ] El archivo `Tools4MeW.exe` muestra el icono personalizado en el Explorador.
 - [ ] Los cinco botones, los diálogos de modo, el Modo auto, la barra superior y los menús funcionan igual que con Python.
 - [ ] La limpieza rápida no rompe el `.exe` desinstalado: el directorio `_MEI*` de PyInstaller se conserva.
