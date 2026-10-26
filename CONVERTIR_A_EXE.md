@@ -1,99 +1,109 @@
-Este documento explica cómo transformar el script `t4mw.py` en un archivo ejecutable independiente para Windows, de modo que puedas compartirlo y usarlo sin necesidad de tener Python instalado en el equipo destino.
+# Convertir T4MW a `.exe`
 
-## ⚠️ Requisitos Previos
+Este documento explica cómo transformar `t4mw.py` en un ejecutable independiente para Windows, de modo que puedas compartirlo y usarlo sin necesidad de tener Python instalado en el equipo destino.
 
-Antes de comenzar, asegúrate de tener instalado:
+## ⚠️ Requisitos previos
 
-1. Python (versión 3.8 o superior recomendada).
-2. Git (para clonar el repositorio).
+Antes de comenzar, asegúrate de tener:
 
----
-
-## 📋 Paso 1: Preparar el Entorno
-
-1. Clona el repositorio (o descarga el script):
-
-    git clone https://github.com/DanSanMar/tools4mewindows.git  
-    cd tools4mewindows
-
-2. Instala las dependencias necesarias:
-
-El script utiliza Pillow para manejar imágenes. Aunque el script intenta instalarla automáticamente, es mejor hacerlo manualmente antes de compilar para asegurar que todo esté correcto.
-
-    pip install pillow pyinstaller
+1. **Windows 10 u 11**. El ejecutable debe compilarse en Windows: PyInstaller no genera `.exe` desde Linux o macOS, y el script llama a herramientas del sistema (`winget`, `sfc`, `dism`, `chkdsk`, `powershell`).
+2. **Python 3.8 o superior**.
+3. **Git** (opcional, para clonar el repositorio).
 
 ---
 
-## 📦 Paso 2: Preparar los Recursos (Icono)
+## 📋 Paso 1: Preparar el entorno
 
-El script intenta cargar una imagen llamada `LogoALL4meW.png`. Para que el ejecutable tenga el icono correcto y la imagen funcione dentro del `.exe`:
+1. Clona el repositorio (o descarga el código):
 
-- Asegúrate de que el archivo `LogoALL4meW.png` esté en la misma carpeta donde ejecutarás el comando de compilación.
-- Si deseas que el ejecutable tenga un icono personalizado en la barra de tareas, convierte tu imagen a formato `.ico` (ej. `logo.ico`).
+   ```bash
+   git clone https://github.com/DanSanMar/tools4mewindows.git
+   cd tools4mewindows
+   ```
 
----
+2. Instala las dependencias:
 
-## 🚀 Paso 3: Compilar a .exe
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-Abre una terminal (CMD o PowerShell) en la carpeta del proyecto y ejecuta uno de los siguientes comandos según tus necesidades:
-
-### Opción A: Ejecutable Estándar (Con ventana negra de consola)
-
-Esta opción muestra la ventana de comandos mientras se ejecutan las herramientas (útil para ver logs).
-
-    pyinstaller --onefile --name "Tools4MeW" t4mw.py
-    --si falla prueba:
-    python -m PyInstaller --onefile --name "Tools4MeW" t4mw.py
-
-
-### Opción C: Con Icono Personalizado (Recomendado)
-
-Para asignar un icono al ejecutable final:
-
-    pyinstaller --onefile --noconsole --icon="logo.ico" --name "Tools4MeW" t4mw.py
-    -- si falla prueba:
-    python -m PyInstaller --onefile --windowed --add-data "LogoALL4meW.png;." --name "Tools4MeW" t4mw.py
-
-
-(Reemplaza `"logo.ico"` con la ruta real de tu archivo de icono).
+   Esto instala **Pillow** (para manejar la imagen) y **PyInstaller** (para compilar). Aunque el script intenta instalar Pillow automáticamente, conviene hacerlo antes de compilar para asegurar que la dependencia quede incluida en el ejecutable.
 
 ---
 
-## 📂 Paso 4: Obtener el Ejecutable
+## 📦 Paso 2: Comprobar los recursos
+
+El proyecto incluye dos recursos que deben estar en la raíz:
+
+- `LogoALL4meW.png`: imagen de la cabecera de la interfaz.
+- `LogoALL4meW.ico`: icono del ejecutable y de la ventana.
+
+La especificación `Tools4MeW.spec` ya se encarga de embeber ambos y de asignar el icono del ejecutable.
+
+---
+
+## 🚀 Paso 3: Compilar
+
+### Método recomendado: usar la especificación
+
+Desde la carpeta del proyecto:
+
+```bash
+pyinstaller Tools4MeW.spec
+```
+
+La especificación genera un ejecutable único (`--onefile`), con el icono personalizado, el PNG embebido y `console=True`. Mantener la consola es intencionado: ahí se ve el progreso de SFC, DISM y chkdsk.
+
+### Método manual
+
+Si prefieres no usar la especificación:
+
+```bash
+pyinstaller --onefile --name "Tools4MeW" --icon "LogoALL4meW.ico" --add-data "LogoALL4meW.png;." --add-data "LogoALL4meW.ico;." t4mw.py
+```
+
+Si el comando falla, prueba la variante con módulo:
+
+```bash
+python -m PyInstaller --onefile --name "Tools4MeW" --icon "LogoALL4meW.ico" --add-data "LogoALL4meW.png;." --add-data "LogoALL4meW.ico;." t4mw.py
+```
+
+Notas:
+
+- En Windows, el separador de `--add-data` es `;`. En Linux/macOS sería `:`.
+- Si añades `--noconsole` o `--windowed`, el ejecutable no mostrará la salida de SFC/DISM/chkdsk. El log seguirá escribiéndose en `%TEMP%\t4mw.log`.
+
+---
+
+## 📂 Paso 4: Obtener el ejecutable
 
 Una vez finalizado el proceso (puede tardar unos minutos):
 
-- Ve a la carpeta generada llamada `dist`.
-- Encontrarás el archivo `Tools4MeW.exe`.
-- Prueba el ejecutable: haz doble clic para verificar que funciona correctamente.
+- Ve a la carpeta `dist`.
+- Encontrarás `Tools4MeW.exe`.
+- Haz doble clic para probarlo.
 
-**Nota Importante:**  
-El script incluye una comprobación de administrador. Al ejecutar el `.exe`, es posible que Windows te pida permiso de administrador. Acepta para que las herramientas de sistema (SFC, DISM, etc.) funcionen correctamente.
+**Nota importante:** el script incluye una comprobación de administrador. Al ejecutar el `.exe`, Windows pedirá permiso de administrador (UAC). Acéptalo para que SFC, DISM, chkdsk y el resto de herramientas funcionen correctamente.
 
 ---
 
-## 🔧 Solución de Problemas Comunes
+## 🔧 Solución de problemas
 
 | Problema | Solución |
-|----------|---------|
-| Error: "No module named 'PIL'" | Asegúrate de haber ejecutado `pip install pillow` antes de compilar. |
-| La imagen no carga en el `.exe` | PyInstaller a veces no detecta recursos dinámicos. Si usas `--onefile`, la imagen debe estar embebida. Si falla, considera usar `--add-data "LogoALL4meW.png;."` en el comando de compilación. |
-| Antivirus bloquea el `.exe` | Es común que los antivirus marquen como falso positivo herramientas que ejecutan comandos de sistema. Puedes desactivarlo temporalmente para probar o añadir una excepción. |
-| El script pide permisos de Admin | Esto es intencional. El script se reinicia automáticamente con privilegios elevados si no se ejecuta como administrador. |
+|----------|----------|
+| `No module named 'PIL'` | Ejecuta `pip install -r requirements.txt` antes de compilar. |
+| La imagen o el icono no cargan en el `.exe` | Usa `Tools4MeW.spec` o añade `--add-data "LogoALL4meW.png;."` y `--add-data "LogoALL4meW.ico;."` al comando manual. |
+| El antivirus bloquea el `.exe` | Es habitual que marque como falso positivo herramientas que ejecutan comandos del sistema. Añade una exclusión temporal para probar. |
+| El script pide permisos de administrador | Es intencionado: se reinicia con privilegios elevados si no se ejecuta como admin. |
+| No se ve la salida de SFC, DISM o chkdsk | Compila con `console=True` (la especificación ya lo hace) o revisa `%TEMP%\t4mw.log`. |
+| `winget` no se reconoce | Actualiza **App Installer** desde Microsoft Store. |
 
 ---
 
-## 📝 Comandos Avanzados (Opcional)
+## 🩺 Log
 
-Si quieres incluir la imagen explícitamente para evitar errores de ruta en el ejecutable único:
-
-    pyinstaller --onefile --noconsole --icon="logo.ico" --add-data "LogoALL4meW.png;." --name "Tools4MeW" t4mw.py
-
-(En Windows, el separador es `;`. En Linux/Mac sería `:`).
+T4MW escribe su actividad en `%TEMP%\t4mw.log`. Si algo falla al ejecutar el `.exe`, revisa ese archivo antes de abrir una incidencia.
 
 ---
 
-Generado para el proyecto **Tools4MeW - All4me Group**
-
----
-
+Generado para el proyecto **Tools4MeW - All4me Group**.

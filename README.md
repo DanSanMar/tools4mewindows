@@ -3,77 +3,129 @@
 
 **T4MW (Tools4me Windows)** es una suite de mantenimiento ligera y potente escrita en Python. Está diseñada para centralizar las tareas de optimización más comunes de Windows en una interfaz gráfica moderna, intuitiva y fácil de usar, eliminando la necesidad de recordar comandos complejos de la terminal.
 
-![Versión](https://img.shields.io/badge/Versión-1.5-blue)
+![Versión](https://img.shields.io/badge/Versi%C3%B3n-V.4-blue)
 ![Python](https://img.shields.io/badge/Python-3.x-green)
 ![OS](https://img.shields.io/badge/OS-Windows-informational)
+![Licencia](https://img.shields.io/badge/Licencia-MIT-yellow)
 
 ---
 
 ## ✨ Características principales
 
-El script integra las herramientas más eficaces de diagnóstico y limpieza de Windows:
+El menú principal tiene cinco acciones claras:
 
-* **📦 Actualizar Todo el Software**: Utiliza el gestor `Winget` para buscar y aplicar actualizaciones de todas tus aplicaciones instaladas de forma masiva.
-* **🧹 Limpiar Archivos Basura**: Elimina archivos temporales del usuario/sistema y limpia la caché DNS para resolver problemas de red.
-* **🛠 Reparar Archivos del Sistema**: Ejecuta el comando `SFC /scannow` para verificar la integridad de los archivos de Windows.
-* **♻️ Eliminar Residuos de Update**: Usa `DISM` para limpiar versiones antiguas y redundantes de Windows Update, liberando gigabytes de espacio.
-* **🩺 Restaurar Imagen de Sistema**: Repara errores graves del sistema comparando tu instalación local con la imagen oficial de Microsoft.
-* **🚀 Optimizar Memoria RAM**: Fuerza el recolector de basura del sistema para liberar memoria retenida innecesariamente.
-* **🔄 Reiniciar Windows Explorer**: Refresca la barra de tareas y el escritorio de forma rápida si la interfaz se queda congelada.
+* **📦 Actualizar todo el software**: usa el gestor `winget` para buscar y aplicar actualizaciones de todas tus aplicaciones instaladas de forma masiva.
+* **🔄 Abrir Windows Update**: abre la página de Windows Update en Configuración. `winget` actualiza aplicaciones, no Windows.
+* **🧹 Limpiar sistema**: dos modos. La **rápida** borra temporales del usuario y de Windows y vacía la caché DNS. La **completa** añade la limpieza de componentes de Windows con `DISM`. La papelera de reciclaje se puede incluir como opción; si se marca, el borrado es permanente.
+* **🩺 Diagnóstico**: solo lectura. Comprueba la imagen de Windows, los discos y Defender; el modo completo añade análisis del almacén de componentes y `chkdsk`.
+* **🛠 Reparar Windows**: ejecuta `DISM /RestoreHealth` y después `SFC /scannow` en una sola consola.
+
+La barra superior ocupa todo el ancho y contiene cuatro pestañas con fondo azul claro:
+
+- **Modo auto**: ejecuta en una sola consola la actualización con `winget`, la limpieza rápida y el diagnóstico rápido. Puedes marcar o desmarcar cada tarea; no incluye reparación, papelera, limpieza completa ni diagnóstico completo.
+- **Más herramientas**: crear un punto de restauración y análisis rápido con Windows Defender.
+- **Acerca de T4MW**: versión, autor, repositorio, perfil de GitHub y licencia.
+- **Ayuda**: abrir el log y abrir la ayuda de Windows.
+
+Las acciones largas piden confirmación antes de ejecutarse; el **Modo auto** se configura y se lanza desde su propio diálogo. La limpieza y el diagnóstico permiten elegir entre modo rápido y completo. Si `winget` no está disponible, la aplicación avisa en lugar de fallar.
+
+### Tiempos orientativos
+
+| Acción | Tiempo |
+|--------|--------|
+| Limpieza rápida | 1-2 minutos |
+| Limpieza completa | 10-30 minutos |
+| Diagnóstico rápido | 1-3 minutos |
+| Diagnóstico completo | 5-20 minutos |
+| Reparar Windows | 20-60 minutos |
+| Actualizar software | Depende de las actualizaciones |
+| Modo auto | Depende de la actualización + 2-5 minutos |
+| Abrir Windows Update | Inmediato |
 
 ---
 
-## 🎨 Interfaz Personalizable
+## 🎨 Interfaz personalizable
+
 T4MW incluye un **sistema de temas dinámico**:
-- **Modo Oscuro**: Para reducir la fatiga visual (estética Slate/Azul).
-- **Modo Claro**: Interfaz limpia y profesional.
-- **Tooltips Informativos**: Cada botón muestra una breve explicación de lo que hace al pasar el ratón.
+
+- **Modo oscuro**: para reducir la fatiga visual (estética slate/azul).
+- **Modo claro**: interfaz limpia y profesional.
+- **Tooltips informativos**: cada botón muestra una breve explicación de lo que hace al pasar el ratón.
+- **Barra superior de ancho completo**: cuatro pestañas iguales con fondo azul claro y borde inferior de acento.
+- **Botones principales con color suave**: fondo azul claro y borde fino para distinguirlos sin recargar la interfaz.
 
 ---
 
-## 🚀 Requisitos e Instalación
+## 🚀 Requisitos e instalación
 
 ### Requisitos previos
-- **Sistema Operativo**: Windows 10 u 11.
-- **Python**: Tener instalado [Python 3.x](https://www.python.org/).
-- **Permisos**: El script requiere privilegios de **Administrador** (el propio programa solicitará el permiso UAC al iniciarse).
+
+- **Sistema operativo**: Windows 10 u 11.
+- **Python**: [Python 3.8 o superior](https://www.python.org/).
+- **Permisos**: el script requiere privilegios de **Administrador** (el propio programa solicitará el permiso UAC al iniciarse).
+- **Dependencias**: Pillow para cargar el logo. Se instala sola si falta, pero conviene instalarla antes.
 
 ### Instalación
-1. Clona este repositorio:
-   ```bash
-   git clone [https://github.com/DanSanMar/tools4mewindows.git](https://github.com/DanSanMar/tools4mewindows.git)
-   Entra en el directorio:
-
-### 🚀 Instalación y Ejecución
 
 ```bash
+git clone https://github.com/DanSanMar/tools4mewindows.git
 cd tools4mewindows
+pip install -r requirements.txt
 python t4mw.py
 ```
 
-🛠️ Tecnologías Utilizadas
+`requirements.txt` incluye Pillow y PyInstaller; este último solo es necesario para compilar el `.exe`.
 
-Componente: Lenguaje
+---
 
-Tecnología: Python
+## 📦 Compilar a `.exe`
 
-Componente: Interfaz Gráfica
+El método recomendado usa la especificación incluida, que embebe el logo y el icono de la ventana, y asigna el icono del ejecutable:
 
-Tecnología: Tkinter
+```bash
+pyinstaller Tools4MeW.spec
+```
 
-Componente: Llamadas de Sistema
+El ejecutable aparece en `dist/Tools4MeW.exe`. Para el método manual y la solución de problemas, consulta [CONVERTIR_A_EXE.md](CONVERTIR_A_EXE.md).
 
-Tecnología: Librerías ctypes y os
+---
 
-⚠️ Nota de Seguridad
+## 🧪 Pruebas
+
+Antes de compilar o distribuir una versión, sigue la checklist de [PRUEBAS.md](PRUEBAS.md). Recoge el resultado de cada acción y revisa el log si algo falla.
+
+---
+
+## 🩺 Registro (log)
+
+La actividad se registra en `%TEMP%\t4mw.log`. Es útil cuando se ejecuta el `.exe` y no queda claro por qué falló un comando.
+
+---
+
+## ⚠️ Nota de seguridad
+
 Este script ejecuta comandos que modifican archivos del sistema y registros de actualización. Se recomienda:
 
-✅ Cerrar aplicaciones importantes antes de usar las herramientas de limpieza.
-⏱️ Tener paciencia durante los procesos de SFC y DISM, ya que pueden tardar varios minutos.
-⚖️ Responsabilidad: El autor no se hace responsable de un uso indebido de las herramientas.
+- ✅ Cerrar aplicaciones importantes antes de usar las herramientas de limpieza.
+- 🚦 No ejecutes dos acciones largas a la vez: espera a que termine la consola.
+- 💾 Crear un punto de restauración antes de usar **Reparar Windows**.
+- ⏱️ Tener paciencia durante SFC, DISM y `chkdsk`; pueden tardar varios minutos y la consola no debe cerrarse.
+- 🧹 La limpieza de temporales no toca documentos personales. La papelera solo se vacía si marcas la opción **Incluir papelera de reciclaje** en el diálogo de limpieza; esa acción es irreversible.
+- ⚙️ **Modo auto** solo ejecuta actualización con `winget`, limpieza rápida y diagnóstico rápido. No repara Windows, no vacía la papelera y no usa los modos completos.
+- ℹ️ La limpieza completa elimina componentes de actualizaciones anteriores y puede impedir desinstalar algunas actualizaciones.
+- ⚖️ **Responsabilidad**: el autor no se hace responsable de un uso indebido de las herramientas.
 
-👤 Autor
-Desarrollado por DanSanMar.
+---
 
-GitHub: @DanSanMar
-Repositorio: tools4mewindows
+## 👤 Autor
+
+Desarrollado por **DanSanMar**.
+
+- GitHub: [@DanSanMar](https://github.com/DanSanMar)
+- Repositorio: [tools4mewindows](https://github.com/DanSanMar/tools4mewindows)
+
+---
+
+## 📄 Licencia
+
+Este proyecto se distribuye bajo la licencia **MIT**. Consulta [LICENSE](LICENSE).
