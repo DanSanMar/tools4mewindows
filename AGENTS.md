@@ -11,8 +11,8 @@ Single-file Python Tkinter GUI for Windows system maintenance. The only source f
 - Main actions: update (winget), clean (quick/complete), repair (DISM + SFC), diagnose (quick/complete). Secondary tools live in the native "Herramientas" menu (restore point, recycle bin, Defender, Windows Update, log).
 
 ## Build `.exe`
-- Canonical: `pyinstaller Tools4MeW.spec` (icon `LogoALL4meW.ico`, `console=True`, embeds `LogoALL4meW.png`, output name `Tools4MeW`).
-- Alternative: `pyinstaller --onefile --name "Tools4MeW" --icon "LogoALL4meW.ico" --add-data "LogoALL4meW.png;." t4mw.py` (keeps the console window).
+- Canonical: `pyinstaller Tools4MeW.spec` (icon `LogoALL4meW.ico`, `console=True`, embeds `LogoALL4meW.png` and `LogoALL4meW.ico`, output name `Tools4MeW`).
+- Alternative: `pyinstaller --onefile --name "Tools4MeW" --icon "LogoALL4meW.ico" --add-data "LogoALL4meW.png;." --add-data "LogoALL4meW.ico;." t4mw.py` (keeps the console window).
 - Output lands in `dist/`; `build/` and `dist/` are gitignored.
 - Build on Windows: PyInstaller does not cross-compile, and the app calls Windows tools.
 - Images are loaded through `resource_path()`, which supports PyInstaller's `_MEIPASS`.

@@ -96,7 +96,8 @@ Marca cada casilla cuando el resultado coincida con lo esperado. Si algo falla, 
 
 - [ ] `pyinstaller Tools4MeW.spec` termina sin errores.
 - [ ] `dist\Tools4MeW.exe` arranca en un Windows sin Python instalado.
-- [ ] El `.exe` pide UAC, muestra icono, logo y versión V.3.
+- [ ] El `.exe` pide UAC, muestra el logo de cabecera, el icono de la ventana y la versión V.3.
+- [ ] El archivo `Tools4MeW.exe` muestra el icono personalizado en el Explorador.
 - [ ] Los cuatro botones, los diálogos de modo y el menú Herramientas funcionan igual que con Python.
 - [ ] La limpieza rápida no rompe el `.exe` desinstalado: el directorio `_MEI*` de PyInstaller se conserva.
 - [ ] El `.exe` no intenta instalar Pillow con `pip` si falta la dependencia.

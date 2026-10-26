@@ -36,9 +36,9 @@ Antes de comenzar, asegúrate de tener:
 El proyecto incluye dos recursos que deben estar en la raíz:
 
 - `LogoALL4meW.png`: imagen de la cabecera de la interfaz.
-- `LogoALL4meW.ico`: icono del ejecutable.
+- `LogoALL4meW.ico`: icono del ejecutable y de la ventana.
 
-La especificación `Tools4MeW.spec` ya se encarga de embeber el PNG y de asignar el icono.
+La especificación `Tools4MeW.spec` ya se encarga de embeber ambos y de asignar el icono del ejecutable.
 
 ---
 
@@ -59,13 +59,13 @@ La especificación genera un ejecutable único (`--onefile`), con el icono perso
 Si prefieres no usar la especificación:
 
 ```bash
-pyinstaller --onefile --name "Tools4MeW" --icon "LogoALL4meW.ico" --add-data "LogoALL4meW.png;." t4mw.py
+pyinstaller --onefile --name "Tools4MeW" --icon "LogoALL4meW.ico" --add-data "LogoALL4meW.png;." --add-data "LogoALL4meW.ico;." t4mw.py
 ```
 
 Si el comando falla, prueba la variante con módulo:
 
 ```bash
-python -m PyInstaller --onefile --name "Tools4MeW" --icon "LogoALL4meW.ico" --add-data "LogoALL4meW.png;." t4mw.py
+python -m PyInstaller --onefile --name "Tools4MeW" --icon "LogoALL4meW.ico" --add-data "LogoALL4meW.png;." --add-data "LogoALL4meW.ico;." t4mw.py
 ```
 
 Notas:
@@ -92,7 +92,7 @@ Una vez finalizado el proceso (puede tardar unos minutos):
 | Problema | Solución |
 |----------|----------|
 | `No module named 'PIL'` | Ejecuta `pip install -r requirements.txt` antes de compilar. |
-| La imagen no carga en el `.exe` | Usa `Tools4MeW.spec` o añade `--add-data "LogoALL4meW.png;."` al comando manual. |
+| La imagen o el icono no cargan en el `.exe` | Usa `Tools4MeW.spec` o añade `--add-data "LogoALL4meW.png;."` y `--add-data "LogoALL4meW.ico;."` al comando manual. |
 | El antivirus bloquea el `.exe` | Es habitual que marque como falso positivo herramientas que ejecutan comandos del sistema. Añade una exclusión temporal para probar. |
 | El script pide permisos de administrador | Es intencionado: se reinicia con privilegios elevados si no se ejecuta como admin. |
 | No se ve la salida de SFC, DISM o chkdsk | Compila con `console=True` (la especificación ya lo hace) o revisa `%TEMP%\t4mw.log`. |

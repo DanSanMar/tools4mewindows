@@ -78,7 +78,7 @@ python t4mw.py
 
 ## 📦 Compilar a `.exe`
 
-El método recomendado usa la especificación incluida, que embebe el logo y asigna el icono:
+El método recomendado usa la especificación incluida, que embebe el logo y el icono de la ventana, y asigna el icono del ejecutable:
 
 ```bash
 pyinstaller Tools4MeW.spec

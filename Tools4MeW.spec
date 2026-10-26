@@ -5,7 +5,7 @@ a = Analysis(
     ['t4mw.py'],
     pathex=[],
     binaries=[],
-    datas=[('LogoALL4meW.png', '.')],
+    datas=[('LogoALL4meW.png', '.'), ('LogoALL4meW.ico', '.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
