@@ -143,4 +143,4 @@ Marca cada casilla cuando el resultado coincida con lo esperado. Si algo falla, 
 
 | Fecha | Equipo | Resultado | Notas |
 |-------|--------|-----------|-------|
-|       |        |           |       |
+| 2026-10-27 | Windows de pruebas | Correcto | `.exe` compilado con `pyinstaller Tools4MeW.spec` y probado sin Python; arranque, interfaz, pestañas y menús correctos. |
