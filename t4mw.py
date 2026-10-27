@@ -646,6 +646,18 @@ def abrir_windows_update():
             f"No se pudo abrir la configuración de Windows Update:\n\n{e}",
         )
 
+def abrir_utilidad_windows(nombre, comando):
+    """Abre una herramienta integrada de Windows sin cerrar T4MW."""
+    try:
+        subprocess.Popen(comando)
+        logging.info("Abriendo %s: %s", nombre, " ".join(comando))
+    except Exception as e:
+        logging.exception("No se pudo abrir %s", nombre)
+        messagebox.showerror(
+            "Herramientas de Windows",
+            f"No se pudo abrir {nombre}:\n\n{e}",
+        )
+
 def abrir_log():
     if not os.path.exists(log_path):
         messagebox.showinfo("Log", "Todavía no hay ningún registro.")
@@ -762,37 +774,62 @@ try:
         menu.add_command(label="Crear punto de restauración", command=crear_punto_restauracion)
         menu.add_command(label="Análisis rápido de Defender", command=analizar_defender)
 
+    def poblar_menu_sistema(menu):
+        for nombre, comando in (
+            ("Administrador de tareas", ["taskmgr.exe"]),
+            ("Servicios", ["mmc.exe", "services.msc"]),
+            ("Monitor de recursos", ["resmon.exe"]),
+            ("Visor de eventos", ["mmc.exe", "eventvwr.msc"]),
+            ("Administrador de dispositivos", ["mmc.exe", "devmgmt.msc"]),
+            ("Administración de discos", ["mmc.exe", "diskmgmt.msc"]),
+            ("Programador de tareas", ["mmc.exe", "taskschd.msc"]),
+        ):
+            menu.add_command(
+                label=nombre,
+                command=lambda n=nombre, c=comando: abrir_utilidad_windows(n, c),
+            )
+
     def poblar_menu_ayuda(menu):
         menu.add_command(label="Abrir log", command=abrir_log)
         menu.add_command(label="Ayuda de Windows", command=abrir_ayuda_windows)
 
     barra_menus = tk.Frame(app, bd=0, highlightthickness=0)
     barra_menus.pack(fill="x", side="top")
-    for columna in range(4):
+    for columna in range(5):
         barra_menus.grid_columnconfigure(columna, weight=1, uniform="pestanas")
 
-    # Cuatro pestañas de ancho uniforme: Modo auto, Más, Acerca y Ayuda.
+    # Cinco pestañas de ancho uniforme: Modo auto, Más, Sistema, Acerca y Ayuda.
     btn_menu_ayuda = tk.Menubutton(
         barra_menus, text="Ayuda",
-        font=("Segoe UI Semibold", 10), relief="flat", bd=0,
-        padx=8, pady=6, highlightthickness=0, cursor="hand2",
+        font=("Segoe UI Semibold", 9), relief="flat", bd=0,
+        padx=6, pady=6, highlightthickness=0, cursor="hand2",
     )
     menu_ayuda = tk.Menu(btn_menu_ayuda, tearoff=0)
     poblar_menu_ayuda(menu_ayuda)
     btn_menu_ayuda.config(menu=menu_ayuda)
-    btn_menu_ayuda.grid(row=0, column=3, sticky="ew", padx=1, pady=2)
+    btn_menu_ayuda.grid(row=0, column=4, sticky="ew", padx=1, pady=2)
 
     btn_menu_acerca = tk.Button(
         barra_menus, text="Acerca de T4MW", command=acerca_de,
-        font=("Segoe UI Semibold", 10), relief="flat", bd=0,
-        padx=8, pady=6, highlightthickness=0, cursor="hand2",
+        font=("Segoe UI Semibold", 9), relief="flat", bd=0,
+        padx=6, pady=6, highlightthickness=0, cursor="hand2",
     )
-    btn_menu_acerca.grid(row=0, column=2, sticky="ew", padx=1, pady=2)
+    btn_menu_acerca.grid(row=0, column=3, sticky="ew", padx=1, pady=2)
+
+    btn_menu_sistema = tk.Menubutton(
+        barra_menus, text="Sistema",
+        font=("Segoe UI Semibold", 9), relief="flat", bd=0,
+        padx=6, pady=6, highlightthickness=0, cursor="hand2",
+    )
+    menu_sistema = tk.Menu(btn_menu_sistema, tearoff=0)
+    poblar_menu_sistema(menu_sistema)
+    btn_menu_sistema.config(menu=menu_sistema)
+    btn_menu_sistema.grid(row=0, column=2, sticky="ew", padx=1, pady=2)
 
     btn_menu_mas = tk.Menubutton(
         barra_menus, text="Más herramientas",
-        font=("Segoe UI Semibold", 10), relief="flat", bd=0,
-        padx=8, pady=6, highlightthickness=0, cursor="hand2",
+        font=("Segoe UI Semibold", 9), relief="flat", bd=0,
+        padx=6, pady=6, highlightthickness=0, cursor="hand2",
     )
     menu_mas = tk.Menu(btn_menu_mas, tearoff=0)
     poblar_menu_mas(menu_mas)
@@ -801,8 +838,8 @@ try:
 
     btn_modo_auto = tk.Button(
         barra_menus, text="Modo auto", command=modo_auto,
-        font=("Segoe UI Semibold", 10), relief="flat", bd=0,
-        padx=8, pady=6, highlightthickness=0, cursor="hand2",
+        font=("Segoe UI Semibold", 9), relief="flat", bd=0,
+        padx=6, pady=6, highlightthickness=0, cursor="hand2",
     )
     btn_modo_auto.grid(row=0, column=0, sticky="ew", padx=1, pady=2)
 
@@ -892,7 +929,7 @@ try:
                 activebackground=btn_accion_hover, activeforeground=fg_primary,
             )
 
-        for btn_menu in (btn_modo_auto, btn_menu_mas, btn_menu_acerca, btn_menu_ayuda):
+        for btn_menu in (btn_modo_auto, btn_menu_mas, btn_menu_sistema, btn_menu_acerca, btn_menu_ayuda):
             btn_menu.config(
                 bg=barra_bg, fg=fg_primary,
                 activebackground=barra_hover, activeforeground=fg_primary,

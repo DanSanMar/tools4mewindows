@@ -20,10 +20,11 @@ El menú principal tiene cinco acciones claras:
 * **🩺 Diagnóstico**: solo lectura. Comprueba la imagen de Windows, los discos y Defender; el modo completo añade análisis del almacén de componentes y `chkdsk`.
 * **🛠 Reparar Windows**: ejecuta `DISM /RestoreHealth` y después `SFC /scannow` en una sola consola.
 
-La barra superior ocupa todo el ancho y contiene cuatro pestañas con fondo azul claro:
+La barra superior ocupa todo el ancho y contiene cinco pestañas con fondo azul claro:
 
 - **Modo auto**: ejecuta en una sola consola la actualización con `winget`, la limpieza rápida y el diagnóstico rápido. Puedes marcar o desmarcar cada tarea; no incluye reparación, papelera, limpieza completa ni diagnóstico completo.
 - **Más herramientas**: crear un punto de restauración y análisis rápido con Windows Defender.
+- **Sistema**: abre el Administrador de tareas, Servicios, Monitor de recursos, Visor de eventos, Administrador de dispositivos, Administración de discos y Programador de tareas.
 - **Acerca de T4MW**: versión, autor, repositorio, perfil de GitHub y licencia.
 - **Ayuda**: abrir el log y abrir la ayuda de Windows.
 
@@ -51,7 +52,7 @@ T4MW incluye un **sistema de temas dinámico**:
 - **Modo oscuro**: para reducir la fatiga visual (estética slate/azul).
 - **Modo claro**: interfaz limpia y profesional.
 - **Tooltips informativos**: cada botón muestra una breve explicación de lo que hace al pasar el ratón.
-- **Barra superior de ancho completo**: cuatro pestañas iguales con fondo azul claro y borde inferior de acento.
+- **Barra superior de ancho completo**: cinco pestañas iguales con fondo azul claro y borde inferior de acento.
 - **Botones principales con color suave**: fondo azul claro y borde fino para distinguirlos sin recargar la interfaz.
 
 ---

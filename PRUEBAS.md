@@ -21,12 +21,13 @@ Marca cada casilla cuando el resultado coincida con lo esperado. Si algo falla, 
 - [ ] Se ven el icono y el logo.
 - [ ] El menú principal tiene exactamente cinco botones: **Actualizar Todo el Software**, **Abrir Windows Update**, **Limpiar Sistema**, **Diagnóstico** y **Reparar Windows**.
 - [ ] No aparecen las acciones antiguas de RAM ni de reiniciar Explorer.
-- [ ] La barra superior ocupa todo el ancho y muestra cuatro pestañas iguales: **Modo auto**, **Más herramientas**, **Acerca de T4MW** y **Ayuda**, con **Ayuda** en el extremo derecho.
+- [ ] La barra superior ocupa todo el ancho y muestra cinco pestañas iguales: **Modo auto**, **Más herramientas**, **Sistema**, **Acerca de T4MW** y **Ayuda**, con **Ayuda** en el extremo derecho.
 - [ ] Las pestañas tienen fondo azul claro y una línea inferior de acento; el texto se lee bien.
 - [ ] **Más herramientas** contiene punto de restauración y análisis de Defender.
+- [ ] **Sistema** contiene Administrador de tareas, Servicios, Monitor de recursos, Visor de eventos, Administrador de dispositivos, Administración de discos y Programador de tareas.
 - [ ] **Ayuda** contiene Abrir log y Ayuda de Windows.
 - [ ] No hay botón inferior de herramientas.
-- [ ] La ventana muestra los cinco botones, las pestañas y el botón de tema sin recortes.
+- [ ] La ventana muestra los cinco botones, las cinco pestañas y el botón de tema sin recortes.
 - [ ] Los cinco botones tienen un fondo azul suave y un borde fino, sin que el texto pierda legibilidad.
 - [ ] Cambiar entre modo claro y oscuro: las pestañas pasan a azul oscuro y los botones mantienen el contraste; no deben quedar marcos oscuros en modo claro.
 - [ ] Abrir los diálogos de **Limpiar Sistema**, **Modo auto** y **Acerca de T4MW** en modo oscuro y en modo claro: deben usar los colores del tema.
@@ -105,10 +106,14 @@ Marca cada casilla cuando el resultado coincida con lo esperado. Si algo falla, 
 - [ ] En ese mismo equipo, desmarcar la actualización y ejecutar limpieza + diagnóstico: funciona sin `winget`.
 - [ ] El log registra las tareas seleccionadas, el título `Mantenimiento automatico` y cada paso.
 
-## 8. Más herramientas, Ayuda y Acerca de
+## 8. Más herramientas, Sistema, Acerca de y Ayuda
 
 - [ ] **Más herramientas → Crear punto de restauración**: pide confirmación y ejecuta `Checkpoint-Computer`. Si la Protección del sistema está desactivada, muestra el error en la consola sin cerrarla.
 - [ ] **Más herramientas → Análisis rápido de Defender**: pide confirmación, actualiza firmas y lanza un análisis rápido. Si hay otro antivirus, muestra el error en la consola.
+- [ ] **Sistema → Administrador de tareas**: abre el Administrador de tareas de Windows.
+- [ ] **Sistema → Servicios**: abre la consola de Servicios con permisos de administrador.
+- [ ] **Sistema → Monitor de recursos / Visor de eventos / Administrador de dispositivos / Administración de discos / Programador de tareas**: abre cada herramienta integrada.
+- [ ] Si alguna herramienta no está disponible, muestra un error legible y T4MW sigue abierto.
 - [ ] **Acerca de T4MW** (barra superior): muestra la versión V.4, el autor, la licencia MIT y los botones **Abrir repositorio** y **Abrir perfil de GitHub**.
 - [ ] **Abrir repositorio** abre `https://github.com/DanSanMar/tools4mewindows` en el navegador.
 - [ ] **Abrir perfil de GitHub** abre `https://github.com/DanSanMar` en el navegador.
@@ -121,6 +126,7 @@ Marca cada casilla cuando el resultado coincida con lo esperado. Si algo falla, 
 - [ ] `%TEMP%\t4mw.log` contiene `Iniciando T4MW V.4`.
 - [ ] Contiene `Ejecutando como administrador en ...`.
 - [ ] Contiene una línea `Ejecutando: ...` por cada secuencia y una línea por cada paso.
+- [ ] Las herramientas de **Sistema** dejan una línea `Abriendo ...` en el log.
 
 ## 10. Compilación y `.exe`
 
@@ -128,7 +134,7 @@ Marca cada casilla cuando el resultado coincida con lo esperado. Si algo falla, 
 - [ ] `dist\Tools4MeW.exe` arranca en un Windows sin Python instalado.
 - [ ] El `.exe` pide UAC, muestra el logo de cabecera, el icono de la ventana y la versión V.4.
 - [ ] El archivo `Tools4MeW.exe` muestra el icono personalizado en el Explorador.
-- [ ] Los cinco botones, los diálogos de modo, el Modo auto, la barra superior y los menús funcionan igual que con Python.
+- [ ] Los cinco botones, los diálogos de modo, el Modo auto, la pestaña **Sistema**, la barra superior y los menús funcionan igual que con Python.
 - [ ] La limpieza rápida no rompe el `.exe` desinstalado: el directorio `_MEI*` de PyInstaller se conserva.
 - [ ] El `.exe` no intenta instalar Pillow con `pip` si falta la dependencia.
 
