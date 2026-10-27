@@ -770,9 +770,22 @@ try:
         logging.warning("No se pudo cargar el icono: %s", e)
 
     # --- BARRA SUPERIOR DE MENÚS ---
+    def agregar_utilidad_windows(menu, nombre, comando):
+        menu.add_command(
+            label=nombre,
+            command=lambda n=nombre, c=comando: abrir_utilidad_windows(n, c),
+        )
+
     def poblar_menu_mas(menu):
         menu.add_command(label="Crear punto de restauración", command=crear_punto_restauracion)
         menu.add_command(label="Análisis rápido de Defender", command=analizar_defender)
+        menu.add_separator()
+        for nombre, comando in (
+            ("Administrador de dispositivos", ["mmc.exe", "devmgmt.msc"]),
+            ("Administración de discos", ["mmc.exe", "diskmgmt.msc"]),
+            ("Programador de tareas", ["mmc.exe", "taskschd.msc"]),
+        ):
+            agregar_utilidad_windows(menu, nombre, comando)
 
     def poblar_menu_sistema(menu):
         for nombre, comando in (
@@ -780,14 +793,8 @@ try:
             ("Servicios", ["mmc.exe", "services.msc"]),
             ("Monitor de recursos", ["resmon.exe"]),
             ("Visor de eventos", ["mmc.exe", "eventvwr.msc"]),
-            ("Administrador de dispositivos", ["mmc.exe", "devmgmt.msc"]),
-            ("Administración de discos", ["mmc.exe", "diskmgmt.msc"]),
-            ("Programador de tareas", ["mmc.exe", "taskschd.msc"]),
         ):
-            menu.add_command(
-                label=nombre,
-                command=lambda n=nombre, c=comando: abrir_utilidad_windows(n, c),
-            )
+            agregar_utilidad_windows(menu, nombre, comando)
 
     def poblar_menu_ayuda(menu):
         menu.add_command(label="Abrir log", command=abrir_log)
@@ -798,7 +805,9 @@ try:
     for columna in range(5):
         barra_menus.grid_columnconfigure(columna, weight=1, uniform="pestanas")
 
-    # Cinco pestañas de ancho uniforme: Modo auto, Más, Sistema, Acerca y Ayuda.
+    # Cinco pestañas de ancho uniforme: Modo auto, Sistema, Más, Acerca y Ayuda.
+    # Sistema agrupa la supervisión básica; Más herramientas, el mantenimiento
+    # y las utilidades avanzadas de Windows.
     btn_menu_ayuda = tk.Menubutton(
         barra_menus, text="Ayuda",
         font=("Segoe UI Semibold", 9), relief="flat", bd=0,
@@ -824,7 +833,7 @@ try:
     menu_sistema = tk.Menu(btn_menu_sistema, tearoff=0)
     poblar_menu_sistema(menu_sistema)
     btn_menu_sistema.config(menu=menu_sistema)
-    btn_menu_sistema.grid(row=0, column=2, sticky="ew", padx=1, pady=2)
+    btn_menu_sistema.grid(row=0, column=1, sticky="ew", padx=1, pady=2)
 
     btn_menu_mas = tk.Menubutton(
         barra_menus, text="Más herramientas",
@@ -834,7 +843,7 @@ try:
     menu_mas = tk.Menu(btn_menu_mas, tearoff=0)
     poblar_menu_mas(menu_mas)
     btn_menu_mas.config(menu=menu_mas)
-    btn_menu_mas.grid(row=0, column=1, sticky="ew", padx=1, pady=2)
+    btn_menu_mas.grid(row=0, column=2, sticky="ew", padx=1, pady=2)
 
     btn_modo_auto = tk.Button(
         barra_menus, text="Modo auto", command=modo_auto,
@@ -929,7 +938,7 @@ try:
                 activebackground=btn_accion_hover, activeforeground=fg_primary,
             )
 
-        for btn_menu in (btn_modo_auto, btn_menu_mas, btn_menu_sistema, btn_menu_acerca, btn_menu_ayuda):
+        for btn_menu in (btn_modo_auto, btn_menu_sistema, btn_menu_mas, btn_menu_acerca, btn_menu_ayuda):
             btn_menu.config(
                 bg=barra_bg, fg=fg_primary,
                 activebackground=barra_hover, activeforeground=fg_primary,

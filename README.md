@@ -23,8 +23,8 @@ El menú principal tiene cinco acciones claras:
 La barra superior ocupa todo el ancho y contiene cinco pestañas con fondo azul claro:
 
 - **Modo auto**: ejecuta en una sola consola la actualización con `winget`, la limpieza rápida y el diagnóstico rápido. Puedes marcar o desmarcar cada tarea; no incluye reparación, papelera, limpieza completa ni diagnóstico completo.
-- **Más herramientas**: crear un punto de restauración y análisis rápido con Windows Defender.
-- **Sistema**: abre el Administrador de tareas, Servicios, Monitor de recursos, Visor de eventos, Administrador de dispositivos, Administración de discos y Programador de tareas.
+- **Sistema**: abre el Administrador de tareas, Servicios, Monitor de recursos y Visor de eventos.
+- **Más herramientas**: crear un punto de restauración, análisis rápido con Windows Defender, Administrador de dispositivos, Administración de discos y Programador de tareas.
 - **Acerca de T4MW**: versión, autor, repositorio, perfil de GitHub y licencia.
 - **Ayuda**: abrir el log y abrir la ayuda de Windows.
 
