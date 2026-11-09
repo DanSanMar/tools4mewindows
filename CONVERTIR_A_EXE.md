@@ -2,6 +2,8 @@
 
 Este documento explica cómo transformar `t4mw.py` en un ejecutable independiente para Windows, de modo que puedas compartirlo y usarlo sin necesidad de tener Python instalado en el equipo destino.
 
+> **Novedad V.5:** el ejecutable arranca en **modo normal** y pide UAC solo cuando usas una herramienta que lo necesita o cuando pulsas **CAMBIAR A MODO ADMINISTRADOR**. No hace falta compilar con `--uac-admin`.
+
 ## ⚠️ Requisitos previos
 
 Antes de comenzar, asegúrate de tener:
@@ -83,7 +85,7 @@ Una vez finalizado el proceso (puede tardar unos minutos):
 - Encontrarás `Tools4MeW.exe`.
 - Haz doble clic para probarlo.
 
-**Nota importante:** el script incluye una comprobación de administrador. Al ejecutar el `.exe`, Windows pedirá permiso de administrador (UAC). Acéptalo para que SFC, DISM, chkdsk y el resto de herramientas funcionen correctamente.
+**Nota importante:** el ejecutable arranca en **modo normal** y no se eleva solo. SFC, DISM, `chkdsk`, el punto de restauración, Defender y la limpieza completa pedirán UAC únicamente al usarlos. Si prefieres que todas las herramientas trabajen elevadas sin avisos, pulsa **CAMBIAR A MODO ADMINISTRADOR** dentro de la aplicación.
 
 ---
 
@@ -94,7 +96,7 @@ Una vez finalizado el proceso (puede tardar unos minutos):
 | `No module named 'PIL'` | Ejecuta `pip install -r requirements.txt` antes de compilar. |
 | La imagen o el icono no cargan en el `.exe` | Usa `Tools4MeW.spec` o añade `--add-data "LogoALL4meW.png;."` y `--add-data "LogoALL4meW.ico;."` al comando manual. |
 | El antivirus bloquea el `.exe` | Es habitual que marque como falso positivo herramientas que ejecutan comandos del sistema. Añade una exclusión temporal para probar. |
-| El script pide permisos de administrador | Es intencionado: se reinicia con privilegios elevados si no se ejecuta como admin. |
+| Aparece UAC al usar una herramienta | Es intencionado: en modo normal solo se eleva la tarea que lo necesita. Para evitar el aviso en cada acción, activa el **modo administrador** desde el pie de la ventana. |
 | No se ve la salida de SFC, DISM o chkdsk | Compila con `console=True` (la especificación ya lo hace) o revisa `%TEMP%\t4mw.log`. |
 | `winget` no se reconoce | Actualiza **App Installer** desde Microsoft Store. |
 

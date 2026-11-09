@@ -3,7 +3,7 @@
 
 **T4MW (Tools4me Windows)** es una suite de mantenimiento ligera y potente escrita en Python. Está diseñada para centralizar las tareas de optimización más comunes de Windows en una interfaz gráfica moderna, intuitiva y fácil de usar, eliminando la necesidad de recordar comandos complejos de la terminal.
 
-![Versión](https://img.shields.io/badge/Versi%C3%B3n-V.4-blue)
+![Versión](https://img.shields.io/badge/Versi%C3%B3n-V.5-blue)
 ![Python](https://img.shields.io/badge/Python-3.x-green)
 ![OS](https://img.shields.io/badge/OS-Windows-informational)
 ![Licencia](https://img.shields.io/badge/Licencia-MIT-yellow)
@@ -16,7 +16,7 @@ El menú principal tiene cinco acciones claras:
 
 * **📦 Actualizar todo el software**: usa el gestor `winget` para buscar y aplicar actualizaciones de todas tus aplicaciones instaladas de forma masiva.
 * **🔄 Abrir Windows Update**: abre la página de Windows Update en Configuración. `winget` actualiza aplicaciones, no Windows.
-* **🧹 Limpiar sistema**: dos modos. La **rápida** borra temporales del usuario y de Windows y vacía la caché DNS. La **completa** añade la limpieza de componentes de Windows con `DISM`. La papelera de reciclaje se puede incluir como opción; si se marca, el borrado es permanente.
+* **🧹 Limpiar sistema**: dos modos. La **rápida** borra temporales del usuario y, en modo administrador, también los de Windows y la caché DNS. La **completa** añade la limpieza de componentes de Windows con `DISM`. La papelera de reciclaje se puede incluir como opción; si se marca, el borrado es permanente.
 * **🩺 Diagnóstico**: solo lectura. Comprueba la imagen de Windows, los discos y Defender; el modo completo añade análisis del almacén de componentes y `chkdsk`.
 * **🛠 Reparar Windows**: ejecuta `DISM /RestoreHealth` y después `SFC /scannow` en una sola consola.
 
@@ -26,7 +26,7 @@ La barra superior ocupa todo el ancho y contiene cinco pestañas con fondo azul 
 - **Sistema**: abre el Administrador de tareas, Servicios, Monitor de recursos y Visor de eventos.
 - **Más herramientas**: crear un punto de restauración, análisis rápido con Windows Defender, Administrador de dispositivos, Administración de discos y Programador de tareas.
 - **Acerca de T4MW**: versión, autor, repositorio, perfil de GitHub y licencia.
-- **Ayuda**: abrir el log y abrir la ayuda de Windows.
+- **Ayuda**: explicación de los modos de ejecución, abrir el log y abrir la ayuda de Windows.
 
 Las acciones largas piden confirmación antes de ejecutarse; el **Modo auto** se configura y se lanza desde su propio diálogo. La limpieza y el diagnóstico permiten elegir entre modo rápido y completo. Si `winget` no está disponible, la aplicación avisa en lugar de fallar.
 
@@ -42,6 +42,36 @@ Las acciones largas piden confirmación antes de ejecutarse; el **Modo auto** se
 | Actualizar software | Depende de las actualizaciones |
 | Modo auto | Depende de la actualización + 2-5 minutos |
 | Abrir Windows Update | Inmediato |
+
+---
+
+## 🎛️ Modos de ejecución (V.5)
+
+T4MW arranca en **modo normal** y solo pide permisos de administrador cuando hacen falta. La aplicación muestra el modo actual bajo el título y lo registra en el log.
+
+### Modo normal (por defecto)
+
+- La aplicación se abre **sin UAC**.
+- **Actualizar todo el software** funciona sin elevar la aplicación: Windows pedirá UAC solo por cada instalador que lo requiera, y el resto se actualizará sin avisos.
+- **Limpiar sistema → rápida** borra únicamente los temporales de tu usuario.
+- **Reparar Windows**, **Diagnóstico**, **Más herramientas → punto de restauración**, **análisis de Defender** y la **limpieza completa** piden UAC solo al pulsarlos.
+- Si el **Modo auto** incluye el diagnóstico, se pide UAC una vez y la limpieza aprovecha esos permisos.
+
+### Modo administrador
+
+- El botón **CAMBIAR A MODO ADMINISTRADOR** reinicia T4MW solicitando UAC una sola vez.
+- Todas las herramientas funcionan sin avisos adicionales.
+- La limpieza rápida incluye los temporales de Windows y la caché DNS.
+- Recomendado para reparaciones profundas (**SFC**, **DISM**) y para la limpieza completa.
+
+### Cómo cambiar de modo
+
+Usa los botones del pie de la ventana:
+
+- **CAMBIAR A MODO ADMINISTRADOR** / **VOLVER A MODO NORMAL**: relanza la aplicación con el modo elegido. Al volver al modo normal, T4MW se reinicia sin privilegios usando `explorer.exe`; si Windows no lo permite, ciérralo y ábrelo de nuevo normalmente.
+- **ℹ️ MODOS** y **Ayuda → Cómo funcionan los modos**: muestran esta misma explicación dentro de la aplicación.
+
+> **Nota:** si abres T4MW con «Ejecutar como administrador», arrancará directamente en modo administrador.
 
 ---
 
@@ -63,7 +93,7 @@ T4MW incluye un **sistema de temas dinámico**:
 
 - **Sistema operativo**: Windows 10 u 11.
 - **Python**: [Python 3.8 o superior](https://www.python.org/).
-- **Permisos**: el script requiere privilegios de **Administrador** (el propio programa solicitará el permiso UAC al iniciarse).
+- **Permisos**: no se requieren privilegios de administrador al iniciar. Se solicitan bajo demanda o al activar el **modo administrador** desde el pie de la ventana.
 - **Dependencias**: Pillow para cargar el logo. Se instala sola si falta, pero conviene instalarla antes.
 
 ### Instalación
@@ -91,6 +121,19 @@ El ejecutable aparece en `dist/Tools4MeW.exe`. Para el método manual y la soluc
 
 ---
 
+## 🆕 Novedades V.5
+
+- Arranque en **modo normal** sin UAC automático.
+- Nuevo **selector de modo** en el pie: administrador ↔ normal.
+- **Elevación bajo demanda**: cada tarea administrativa pide UAC solo al usarse.
+- `winget` sigue funcionando en modo normal, con UAC por aplicación cuando corresponde.
+- Limpieza adaptada al modo: temporales del usuario en normal; completa en administrador.
+- Explicación de los modos integrada en **ℹ️ MODOS** y en **Ayuda**.
+- Los lanzadores se ejecutan desde `.bat` temporales propios y se borran al terminar.
+- Versión unificada en **V.5**.
+
+---
+
 ## 🧪 Pruebas
 
 Antes de compilar o distribuir una versión, sigue la checklist de [PRUEBAS.md](PRUEBAS.md). Recoge el resultado de cada acción y revisa el log si algo falla.
@@ -111,7 +154,7 @@ Este script ejecuta comandos que modifican archivos del sistema y registros de a
 - 🚦 No ejecutes dos acciones largas a la vez: espera a que termine la consola.
 - 💾 Crear un punto de restauración antes de usar **Reparar Windows**.
 - ⏱️ Tener paciencia durante SFC, DISM y `chkdsk`; pueden tardar varios minutos y la consola no debe cerrarse.
-- 🧹 La limpieza de temporales no toca documentos personales. La papelera solo se vacía si marcas la opción **Incluir papelera de reciclaje** en el diálogo de limpieza; esa acción es irreversible.
+- 🧹 La limpieza de temporales no toca documentos personales. En modo normal solo borra los temporales de tu usuario; la papelera solo se vacía si marcas la opción **Incluir papelera de reciclaje** en el diálogo de limpieza, y esa acción es irreversible.
 - ⚙️ **Modo auto** solo ejecuta actualización con `winget`, limpieza rápida y diagnóstico rápido. No repara Windows, no vacía la papelera y no usa los modos completos.
 - ℹ️ La limpieza completa elimina componentes de actualizaciones anteriores y puede impedir desinstalar algunas actualizaciones.
 - ⚖️ **Responsabilidad**: el autor no se hace responsable de un uso indebido de las herramientas.

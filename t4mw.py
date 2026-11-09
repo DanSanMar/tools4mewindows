@@ -2,12 +2,13 @@ import os
 import sys
 import ctypes
 import logging
+import tempfile
 import tkinter as tk
 from tkinter import messagebox
 import subprocess
 import shutil
 
-VERSION = "V.4"
+VERSION = "V.5"
 
 # --- LOGGING A ARCHIVO TEMPORAL (útil cuando se ejecuta como .exe sin consola) ---
 log_path = os.path.join(os.environ.get("TEMP", "."), "t4mw.log")
@@ -91,32 +92,29 @@ class Tooltip:
             self.tip_window.destroy()
             self.tip_window = None
             
-# --- VERIFICACIÓN DE ADMINISTRADOR MEJORADA ---
+# --- VERIFICACIÓN DE ADMINISTRADOR ---
 def es_admin():
     try:
-        return ctypes.windll.shell32.IsUserAnAdmin()
+        return bool(ctypes.windll.shell32.IsUserAnAdmin())
     except Exception:
         return False
 
-if not es_admin():
-    try:
-        # Obtenemos la ruta absoluta del script actual
-        script_path = os.path.abspath(sys.argv[0])
-        # Intentamos elevar privilegios. ShellExecuteW devuelve <= 32 si falla.
-        resultado = ctypes.windll.shell32.ShellExecuteW(
-            None, "runas", sys.executable, f'"{script_path}"', None, 1
-        )
-        if resultado <= 32:
-            raise OSError(f"ShellExecuteW devolvió {resultado}")
-        sys.exit()
-    except Exception as e:
-        print(f"Error crítico al elevar privilegios: {e}")
-        input("Presiona Enter para salir...") # Esto evita que la consola se cierre
-        sys.exit()
+# T4MW arranca siempre en modo normal: no se pide UAC al abrirlo.
+# Si Windows lo inicia elevado (por ejemplo con "Ejecutar como administrador"),
+# se detecta y se usa el modo administrador.
+MODO_ADMIN = es_admin()
 
-# CAMBIO DE DIRECTORIO: Hazlo DESPUÉS de ser admin
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
-logging.info("Ejecutando como administrador en %s", os.getcwd())
+# CAMBIO DE DIRECTORIO: se hace al arrancar, sin elevar privilegios.
+try:
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+except OSError:
+    # Una unidad de red desconectada no debe impedir el arranque.
+    pass
+logging.info(
+    "Ejecutando en modo %s en %s",
+    "administrador" if MODO_ADMIN else "normal",
+    os.getcwd(),
+)
 
 # --- LÓGICA DE LAS HERRAMIENTAS (BACKEND) ---
 
@@ -135,17 +133,30 @@ COMANDO_ACTUALIZAR_WINGET = (
     "--accept-package-agreements --accept-source-agreements"
 )
 
-def pasos_limpieza_rapida():
-    """Pasos comunes de la limpieza rápida, sin papelera ni DISM."""
-    return [
-        (
-            "Limpiando temporales del usuario",
-            comando_powershell(
-                "Get-ChildItem -LiteralPath $env:TEMP -Force -ErrorAction SilentlyContinue | "
-                "Where-Object { $_.Name -notlike '_MEI*' -and $_.Name -ne 't4mw.log' } | "
-                "Remove-Item -Recurse -Force -ErrorAction SilentlyContinue"
-            ),
+def _paso_temporales_usuario():
+    """Paso de limpieza de los temporales del usuario actual."""
+    return (
+        "Limpiando temporales del usuario",
+        comando_powershell(
+            "Get-ChildItem -LiteralPath $env:TEMP -Force -ErrorAction SilentlyContinue | "
+            "Where-Object { $_.Name -notlike '_MEI*' -and $_.Name -ne 't4mw.log' "
+            "-and $_.Name -ne 'T4MW' } | "
+            "Remove-Item -Recurse -Force -ErrorAction SilentlyContinue"
         ),
+    )
+
+def pasos_limpieza_usuario():
+    """Limpieza que puede hacer un usuario normal: solo sus temporales."""
+    return [_paso_temporales_usuario()]
+
+def pasos_limpieza_rapida():
+    """Pasos comunes de la limpieza rápida, sin papelera ni DISM.
+
+    Incluye los temporales de Windows y la caché DNS, así que necesita
+    administrador; en modo normal se usa pasos_limpieza_usuario().
+    """
+    return [
+        _paso_temporales_usuario(),
         (
             "Limpiando temporales de Windows",
             comando_powershell(
@@ -257,13 +268,25 @@ def elegir_limpieza():
     contenido = tk.Frame(ventana, bg=bg, padx=20, pady=20)
     contenido.pack(fill="both", expand=True)
 
+    if MODO_ADMIN:
+        detalle_modo = (
+            "Estás en modo administrador: no habrá avisos de UAC.\n"
+            "• Rápida: temporales del usuario y de Windows, y caché DNS (1-2 min).\n"
+            "• Completa: añade la limpieza de componentes de Windows con DISM (10-30 min).\n\n"
+        )
+    else:
+        detalle_modo = (
+            "Estás en modo normal.\n"
+            "• Rápida: solo los temporales de tu usuario (1-2 min).\n"
+            "• Completa: temporales, caché DNS y componentes de Windows; pedirá UAC.\n\n"
+        )
+
     tk.Label(
         contenido,
         text=(
             "Elige el tipo de limpieza:\n\n"
-            "• Rápida: temporales del usuario y de Windows, y caché DNS (1-2 min).\n"
-            "• Completa: añade la limpieza de componentes de Windows con DISM (10-30 min).\n\n"
-            "La papelera de reciclaje solo se vacía si marcas la casilla inferior."
+            + detalle_modo
+            + "La papelera de reciclaje solo se vacía si marcas la casilla inferior."
         ),
         bg=bg, fg=fg, justify="left", wraplength=430, font=("Segoe UI", 11),
     ).pack(pady=(0, 10))
@@ -346,6 +369,12 @@ def elegir_modo_auto():
             "Las tareas marcadas se ejecutarán en este orden: actualización, "
             "limpieza rápida y diagnóstico rápido. Se abrirá una sola consola. "
             "La actualización puede tardar varios minutos."
+            + (
+                ""
+                if MODO_ADMIN else
+                "\n\nEn modo normal, si marcas el diagnóstico se pedirá UAC una vez "
+                "y la limpieza aprovechará esos permisos."
+            )
         ),
         bg=bg, fg=fg, justify="left", wraplength=430, font=("Segoe UI", 11),
     ).pack(pady=(0, 10))
@@ -356,7 +385,11 @@ def elegir_modo_auto():
 
     for texto, variable in (
         ("Actualizar software con Winget", var_actualizar),
-        ("Limpieza rápida (temporales y DNS)", var_limpiar),
+        (
+            "Limpieza rápida (temporales y DNS)" if MODO_ADMIN
+            else "Limpieza rápida (temporales del usuario)",
+            var_limpiar,
+        ),
         ("Diagnóstico rápido (solo lectura)", var_diagnostico),
     ):
         tk.Checkbutton(
@@ -427,51 +460,163 @@ def elegir_modo_auto():
     ventana.wait_window()
     return resultado["seleccion"]
 
-def construir_script(titulo, pasos):
-    """Construye una línea de CMD con varios pasos numerados."""
-    logo_ascii = f"### Tools4meW - {VERSION} ###"
-    partes = [
+# --- LANZADORES DE CONSOLA (NORMAL Y ELEVADA) ---
+
+def _directorio_lanzadores():
+    """Carpeta propia para los .bat, fuera de %TEMP% para no borrarlos al limpiar.
+
+    Se prueba primero %PUBLIC%, que es escribible por el usuario y accesible
+    también cuando la consola se ejecuta elevada.
+    """
+    candidatos = []
+
+    publico = os.environ.get("PUBLIC")
+    if publico:
+        candidatos.append(os.path.join(publico, "T4MW"))
+
+    local = os.environ.get("LOCALAPPDATA")
+    if local:
+        candidatos.append(os.path.join(local, "T4MW"))
+
+    candidatos.append(os.path.join(tempfile.gettempdir(), "T4MW"))
+
+    for ruta in candidatos:
+        try:
+            os.makedirs(ruta, exist_ok=True)
+            return ruta
+        except OSError:
+            continue
+
+    return tempfile.gettempdir()
+
+def _codificacion_consola():
+    """Codificación que entiende la consola de Windows (títulos con acentos)."""
+    for codificacion in ("oem", "cp1252"):
+        try:
+            "á".encode(codificacion)
+            return codificacion
+        except (LookupError, UnicodeEncodeError):
+            continue
+    return "utf-8"
+
+def _crear_lanzador(titulo, pasos):
+    """Crea un .bat temporal que ejecuta los pasos y se borra al terminar."""
+    lineas = [
+        "@echo off",
         f"title {titulo}",
         "color 0b",
-        f"echo {logo_ascii}",
+        f"echo ### Tools4meW - {VERSION} ###",
         "echo -----------------------------------------",
     ]
 
     total = len(pasos)
     for indice, (etiqueta, comando) in enumerate(pasos, 1):
-        partes.append(f"echo [{indice}/{total}] {etiqueta}...")
-        partes.append(comando)
-        partes.append("echo.")
+        lineas.append(f"echo [{indice}/{total}] {etiqueta}...")
+        lineas.append(comando)
+        lineas.append("echo.")
 
-    partes.extend([
+    lineas.extend([
         "echo -----------------------------------------",
         "echo [!] Tarea finalizada.",
         "pause",
+        '(goto) 2>nul & del "%~f0"',
     ])
-    return " & ".join(partes)
 
-def ejecutar_secuencia(titulo, pasos):
-    """Abre una consola nueva y ejecuta los pasos en orden."""
-    script_cmd = construir_script(titulo, pasos)
+    descriptor, ruta = tempfile.mkstemp(
+        prefix="t4mw_", suffix=".bat", dir=_directorio_lanzadores()
+    )
+    with os.fdopen(
+        descriptor, "w", encoding=_codificacion_consola(), newline="\r\n"
+    ) as archivo:
+        archivo.write("\n".join(lineas) + "\n")
+    return ruta
 
-    logging.info("Ejecutando: %s", titulo)
-    for etiqueta, comando in pasos:
-        logging.info("  [%s] %s", etiqueta, comando)
-
+def _borrar_lanzador(ruta):
+    """Borra el .bat si la consola no llegó a abrirse."""
+    if not ruta:
+        return
     try:
-        # Una sola cadena para que CMD interprete bien las comillas internas.
+        os.remove(ruta)
+    except OSError:
+        pass
+
+def _lanzar_consola(titulo, pasos):
+    """Abre una consola nueva con los permisos actuales de T4MW."""
+    ruta = None
+    try:
+        ruta = _crear_lanzador(titulo, pasos)
         # /d evita AutoRun y CREATE_NEW_CONSOLE da una ventana independiente.
         subprocess.Popen(
-            f'cmd.exe /d /c {script_cmd}',
-            creationflags=subprocess.CREATE_NEW_CONSOLE
+            ["cmd.exe", "/d", "/c", ruta],
+            creationflags=subprocess.CREATE_NEW_CONSOLE,
         )
+        logging.info("Consola lanzada: %s", ruta)
     except Exception as e:
+        _borrar_lanzador(ruta)
         logging.exception("Error ejecutando %s", titulo)
         messagebox.showerror("Error de Ejecución", f"No se pudo abrir la consola: {e}")
 
-def ejecutar_externo(titulo, comando):
+def _lanzar_consola_elevada(titulo, pasos):
+    """Abre una consola elevada pidiendo UAC solo para esta tarea."""
+    ruta = None
+    try:
+        ruta = _crear_lanzador(titulo, pasos)
+        resultado = ctypes.windll.shell32.ShellExecuteW(
+            None, "runas", "cmd.exe", f'/d /c "{ruta}"', None, 1
+        )
+    except Exception as e:
+        _borrar_lanzador(ruta)
+        logging.exception("Error elevando %s", titulo)
+        messagebox.showerror(
+            "Error de Elevación",
+            f"No se pudo solicitar permisos de administrador:\n\n{e}",
+        )
+        return
+
+    if resultado <= 32:
+        _borrar_lanzador(ruta)
+        logging.warning("UAC cancelado o fallido (%s) en %s", resultado, titulo)
+        messagebox.showwarning(
+            "Permisos cancelados",
+            "No se pudo iniciar la tarea con permisos de administrador.\n\n"
+            "Puede que hayas cancelado el aviso de UAC.",
+        )
+        return
+
+    logging.info("Consola elevada lanzada: %s", ruta)
+
+def ejecutar_secuencia(titulo, pasos, requiere_admin=False):
+    """Abre una consola nueva y ejecuta los pasos en orden.
+
+    En modo normal, las tareas que necesitan administrador piden UAC solo al
+    pulsarlas; el resto se ejecutan con los permisos actuales.
+    """
+    logging.info(
+        "Ejecutando: %s (requiere_admin=%s, modo_admin=%s)",
+        titulo, requiere_admin, MODO_ADMIN,
+    )
+    for etiqueta, comando in pasos:
+        logging.info("  [%s] %s", etiqueta, comando)
+
+    if requiere_admin and not MODO_ADMIN:
+        if not messagebox.askyesno(
+            "Permisos de administrador",
+            f"«{titulo}» necesita permisos de administrador.\n\n"
+            "Windows mostrará un aviso de UAC solo para esta tarea. "
+            "¿Quieres continuar?\n\n"
+            "Consejo: con el botón «Cambiar a modo administrador» evitas el "
+            "aviso en cada acción.",
+        ):
+            logging.info("Elevación cancelada por el usuario: %s", titulo)
+            return
+        _lanzar_consola_elevada(titulo, pasos)
+        return
+
+    _lanzar_consola(titulo, pasos)
+
+def ejecutar_externo(titulo, comando, requiere_admin=False):
     """Atajo para lanzar un único comando en una consola."""
-    ejecutar_secuencia(titulo, [(titulo, comando)])
+    ejecutar_secuencia(titulo, [(titulo, comando)], requiere_admin=requiere_admin)
 
 def confirmar(titulo, mensaje):
     # Pide confirmación antes de una acción larga o destructiva.
@@ -503,8 +648,18 @@ def limpiar_sistema():
         logging.info("Limpieza cancelada por el usuario")
         return
 
-    logging.info("Modo de limpieza: %s; papelera: %s", modo, incluir_papelera)
-    pasos = pasos_limpieza_rapida()
+    logging.info(
+        "Modo de limpieza: %s; papelera: %s; modo admin: %s",
+        modo, incluir_papelera, MODO_ADMIN,
+    )
+
+    # La limpieza completa se ejecuta elevada, así que aprovecha para limpiar
+    # también los temporales de Windows y la caché DNS.
+    se_elevara = (modo == "completa") and not MODO_ADMIN
+    if MODO_ADMIN or se_elevara:
+        pasos = pasos_limpieza_rapida()
+    else:
+        pasos = pasos_limpieza_usuario()
 
     if incluir_papelera:
         pasos.append((
@@ -525,7 +680,7 @@ def limpiar_sistema():
     titulo = "Limpieza rapida" if modo == "rapida" else "Limpieza completa"
     if incluir_papelera:
         titulo += " + papelera"
-    ejecutar_secuencia(titulo, pasos)
+    ejecutar_secuencia(titulo, pasos, requiere_admin=(modo == "completa"))
 
 def reparar_windows():
     if not confirmar(
@@ -540,7 +695,7 @@ def reparar_windows():
     ejecutar_secuencia("Reparar Windows", [
         ("Reparando la imagen del sistema con DISM", "dism /online /cleanup-image /restorehealth"),
         ("Comprobando archivos del sistema con SFC", "sfc /scannow"),
-    ])
+    ], requiere_admin=True)
 
 def diagnostico():
     modo = elegir_opcion(
@@ -573,7 +728,7 @@ def diagnostico():
         ))
 
     titulo = "Diagnostico rapido" if modo == "rapido" else "Diagnostico completo"
-    ejecutar_secuencia(titulo, pasos)
+    ejecutar_secuencia(titulo, pasos, requiere_admin=True)
 
 def modo_auto():
     """Ejecuta en una sola consola las tareas seleccionadas del modo automático."""
@@ -597,12 +752,24 @@ def modo_auto():
     pasos = []
     if seleccion["actualizar"]:
         pasos.append(("Actualizando software con Winget", COMANDO_ACTUALIZAR_WINGET))
+
+    # Si el diagnóstico obliga a elevar la consola, se aprovecha para hacer la
+    # limpieza completa de la misma sesión; si no, en modo normal solo se tocan
+    # los temporales del usuario.
+    se_elevara = bool(seleccion["diagnostico"]) and not MODO_ADMIN
     if seleccion["limpiar"]:
-        pasos.extend(pasos_limpieza_rapida())
+        if MODO_ADMIN or se_elevara:
+            pasos.extend(pasos_limpieza_rapida())
+        else:
+            pasos.extend(pasos_limpieza_usuario())
     if seleccion["diagnostico"]:
         pasos.extend(pasos_diagnostico_rapido())
 
-    ejecutar_secuencia("Mantenimiento automatico", pasos)
+    ejecutar_secuencia(
+        "Mantenimiento automatico",
+        pasos,
+        requiere_admin=seleccion["diagnostico"],
+    )
 
 def crear_punto_restauracion():
     if not confirmar(
@@ -619,6 +786,7 @@ def crear_punto_restauracion():
             "Checkpoint-Computer -Description 'T4MW - mantenimiento' "
             "-RestorePointType MODIFY_SETTINGS"
         ),
+        requiere_admin=True,
     )
 
 def analizar_defender():
@@ -633,7 +801,7 @@ def analizar_defender():
     ejecutar_secuencia("Analisis rapido de Defender", [
         ("Actualizando firmas de Defender", comando_powershell("Update-MpSignature")),
         ("Ejecutando analisis rapido", comando_powershell("Start-MpScan -ScanType QuickScan")),
-    ])
+    ], requiere_admin=True)
 
 def abrir_windows_update():
     try:
@@ -756,11 +924,150 @@ def acerca_de():
     ventana.focus_set()
     ventana.wait_window()
 
+# --- CAMBIO ENTRE MODO NORMAL Y MODO ADMINISTRADOR ---
+
+def _comando_app():
+    """Devuelve el ejecutable y los argumentos para relanzar T4MW."""
+    if getattr(sys, "frozen", False):
+        return sys.executable, ""
+    return sys.executable, f'"{os.path.abspath(__file__)}"'
+
+def relanzar_como_admin():
+    """Reinicia T4MW con permisos de administrador (un solo UAC)."""
+    if MODO_ADMIN:
+        return
+
+    if not messagebox.askyesno(
+        "Modo administrador",
+        "T4MW se reiniciará con permisos de administrador.\n\n"
+        "Windows mostrará un aviso de UAC una sola vez y, a partir de ahí, "
+        "todas las herramientas funcionarán sin avisos adicionales.\n\n"
+        "¿Quieres continuar?",
+    ):
+        return
+
+    ejecutable, parametros = _comando_app()
+    try:
+        resultado = ctypes.windll.shell32.ShellExecuteW(
+            None, "runas", ejecutable, parametros, None, 1
+        )
+    except Exception as e:
+        logging.exception("No se pudo relanzar como administrador")
+        messagebox.showerror(
+            "Modo administrador",
+            f"No se pudo reiniciar como administrador:\n\n{e}",
+        )
+        return
+
+    if resultado <= 32:
+        logging.warning("UAC cancelado al cambiar a modo administrador (%s)", resultado)
+        messagebox.showwarning(
+            "Permisos cancelados",
+            "No se pudo reiniciar como administrador.\n\n"
+            "Puede que hayas cancelado el aviso de UAC.",
+        )
+        return
+
+    logging.info("Reiniciando T4MW en modo administrador")
+    app.destroy()
+
+def _crear_lanzador_normal():
+    """Crea un .bat que abre T4MW con el usuario normal, sin privilegios."""
+    if getattr(sys, "frozen", False):
+        objetivo = f'"{sys.executable}"'
+    else:
+        # pythonw evita dejar una consola abierta detrás de la ventana.
+        pythonw = os.path.join(os.path.dirname(sys.executable), "pythonw.exe")
+        if not os.path.isfile(pythonw):
+            pythonw = sys.executable
+        objetivo = f'"{pythonw}" "{os.path.abspath(__file__)}"'
+
+    contenido = "\n".join([
+        "@echo off",
+        f'start "" {objetivo}',
+        '(goto) 2>nul & del "%~f0"',
+    ]) + "\n"
+
+    descriptor, ruta = tempfile.mkstemp(
+        prefix="t4mw_normal_", suffix=".bat", dir=_directorio_lanzadores()
+    )
+    with os.fdopen(
+        descriptor, "w", encoding=_codificacion_consola(), newline="\r\n"
+    ) as archivo:
+        archivo.write(contenido)
+    return ruta
+
+def relanzar_como_normal():
+    """Reinicia T4MW sin privilegios usando explorer.exe (token no elevado)."""
+    if not MODO_ADMIN:
+        return
+
+    if not messagebox.askyesno(
+        "Modo normal",
+        "T4MW se reiniciará sin privilegios de administrador.\n\n"
+        "Las tareas que necesiten administrador volverán a pedir UAC cuando "
+        "las uses.\n\n"
+        "¿Quieres continuar?",
+    ):
+        return
+
+    lanzador = None
+    try:
+        lanzador = _crear_lanzador_normal()
+        # explorer.exe abre el archivo con el token del usuario normal, así que
+        # el nuevo proceso no hereda la elevación.
+        resultado = ctypes.windll.shell32.ShellExecuteW(
+            None, "open", "explorer.exe", f'"{lanzador}"', None, 1
+        )
+    except Exception as e:
+        _borrar_lanzador(lanzador)
+        logging.exception("No se pudo relanzar en modo normal")
+        messagebox.showerror(
+            "Modo normal",
+            f"No se pudo reiniciar sin privilegios:\n\n{e}",
+        )
+        return
+
+    if resultado <= 32:
+        _borrar_lanzador(lanzador)
+        logging.warning("No se pudo relanzar en modo normal (%s)", resultado)
+        messagebox.showwarning(
+            "No se pudo reiniciar",
+            "No se pudo reiniciar automáticamente en modo normal.\n\n"
+            "Cierra T4MW y vuelve a abrirlo normalmente.",
+        )
+        return
+
+    logging.info("Reiniciando T4MW en modo normal")
+    app.destroy()
+
+def explicar_modos():
+    """Explica la diferencia entre el modo normal y el administrador."""
+    messagebox.showinfo(
+        "Cómo funcionan los modos",
+        "T4MW puede funcionar de dos maneras:\n\n"
+        "MODO NORMAL (por defecto)\n"
+        "• La aplicación se abre sin pedir permisos de administrador.\n"
+        "• «Actualizar todo el software» funciona igual: Windows pedirá UAC "
+        "solo por las aplicaciones que lo necesiten.\n"
+        "• La limpieza rápida solo borra los temporales de tu usuario.\n"
+        "• Reparar Windows, el diagnóstico, el punto de restauración, Defender "
+        "y la limpieza completa piden UAC solo al pulsarlos.\n\n"
+        "MODO ADMINISTRADOR\n"
+        "• La aplicación se reinicia con permisos elevados (un único UAC).\n"
+        "• Todas las herramientas funcionan sin avisos adicionales.\n"
+        "• La limpieza rápida incluye los temporales de Windows y la caché DNS.\n\n"
+        "Cambia de modo con el botón inferior. Para volver al modo normal, T4MW "
+        "se reinicia sin privilegios; si Windows no lo permite, ciérralo y "
+        "vuélvelo a abrir normalmente.\n\n"
+        "El modo actual aparece bajo el título y se registra en el log.",
+    )
+
 # --- INTERFAZ GRÁFICA (FRONTEND) ---
 try:
     app = tk.Tk()
     app.title(f"T4MW - All4me Group ({VERSION})")
-    app.geometry("600x650+500+20")
+    app.geometry("600x700+500+20")
     app.resizable(True, True)
 
     # Icono de la ventana (el .exe ya lo lleva, pero así también se ve al ejecutar el .py)
@@ -797,6 +1104,8 @@ try:
             agregar_utilidad_windows(menu, nombre, comando)
 
     def poblar_menu_ayuda(menu):
+        menu.add_command(label="Cómo funcionan los modos", command=explicar_modos)
+        menu.add_separator()
         menu.add_command(label="Abrir log", command=abrir_log)
         menu.add_command(label="Ayuda de Windows", command=abrir_ayuda_windows)
 
@@ -926,7 +1235,8 @@ try:
             lbl_logo_icon.image = logo_img # Referencia obligatoria en Tkinter
 
         lbl_logo_text.config(bg=bg_main, fg=fg_primary)
-        
+        lbl_modo.config(bg=bg_main, fg=fg_secondary)
+
         container.config(bg=bg_main)
         
         # Bucle para actualizar cada botón creado
@@ -947,13 +1257,34 @@ try:
         btn_tema.config(
             text="  MODO CLARO  " if tema_oscuro else "  MODO OSCURO  ",
             bg=accent,
-            fg="#ffffff"
+            fg="#ffffff",
+            activebackground="#0ea5e9" if tema_oscuro else "#0369a1",
+            activeforeground="#ffffff",
+        )
+        bottom_frame.config(bg=bg_main)
+        btn_ayuda_modos.config(
+            bg=btn_bg, fg=fg_primary,
+            activebackground=btn_hover, activeforeground=fg_primary,
+        )
+        btn_modo.config(
+            bg="#16a34a" if MODO_ADMIN else accent,
+            fg="#ffffff",
+            activebackground="#15803d" if MODO_ADMIN else
+            ("#0ea5e9" if tema_oscuro else "#0369a1"),
+            activeforeground="#ffffff",
         )
 
     def alternar_tema():
         global tema_oscuro
         tema_oscuro = not tema_oscuro
         aplicar_tema()
+
+    def alternar_modo():
+        """Alterna entre modo normal y modo administrador relanzando T4MW."""
+        if MODO_ADMIN:
+            relanzar_como_normal()
+        else:
+            relanzar_como_admin()
 
     # --- DISEÑO DE CABECERA ---
     logo_frame = tk.Frame(app, pady=20)
@@ -965,6 +1296,18 @@ try:
     
     lbl_logo_text = tk.Label(logo_frame, text=f"T O O L S 4 M E W - {VERSION}", font=("Segoe UI", 22, "bold"))
     lbl_logo_text.pack()
+
+    # Indicador del modo de ejecución
+    lbl_modo = tk.Label(
+        logo_frame,
+        text=(
+            "Modo actual: Administrador (todas las acciones elevadas)"
+            if MODO_ADMIN else
+            "Modo actual: Normal (UAC solo al usar acciones que lo requieren)"
+        ),
+        font=("Segoe UI", 10, "bold"),
+    )
+    lbl_modo.pack(pady=2)
 
 
     # Contenedor para los botones
@@ -990,15 +1333,73 @@ try:
         Tooltip(btn, descripcion) # Asigna la ayuda flotante
 
     # --- DEFINICIÓN DE BOTONES ---
-    crear_boton_moderno("Actualizar Todo el Software", actualizar_winget, "Actualiza las aplicaciones instaladas con Winget.", "📦")
-    crear_boton_moderno("Abrir Windows Update", abrir_windows_update, "Abre Configuración > Windows Update.\nNo instala actualizaciones automáticamente.", "🔄")
-    crear_boton_moderno("Limpiar Sistema", limpiar_sistema, "Limpieza rápida o completa. Puedes incluir la papelera de reciclaje.", "🧹")
-    crear_boton_moderno("Diagnóstico", diagnostico, "Comprueba Windows, los discos y Defender sin modificar nada.", "🩺")
-    crear_boton_moderno("Reparar Windows", reparar_windows, "Ejecuta DISM /RestoreHealth y SFC /scannow.", "🛠")
+    crear_boton_moderno(
+        "Actualizar Todo el Software", actualizar_winget,
+        "Actualiza las aplicaciones instaladas con Winget.\n"
+        "En modo normal, Windows pedirá UAC solo por las apps que lo necesiten.",
+        "📦",
+    )
+    crear_boton_moderno(
+        "Abrir Windows Update", abrir_windows_update,
+        "Abre Configuración > Windows Update.\nNo instala actualizaciones automáticamente.",
+        "🔄",
+    )
+    crear_boton_moderno(
+        "Limpiar Sistema", limpiar_sistema,
+        "Limpieza rápida o completa. Puedes incluir la papelera de reciclaje.\n"
+        "En modo normal la limpieza rápida solo borra los temporales de tu usuario.",
+        "🧹",
+    )
+    crear_boton_moderno(
+        "Diagnóstico", diagnostico,
+        "Comprueba Windows, los discos y Defender sin modificar nada.\n"
+        "Necesita administrador: si estás en modo normal pedirá UAC al pulsarlo.",
+        "🩺",
+    )
+    crear_boton_moderno(
+        "Reparar Windows", reparar_windows,
+        "Ejecuta DISM /RestoreHealth y SFC /scannow.\n"
+        "Necesita administrador: si estás en modo normal pedirá UAC al pulsarlo.",
+        "🛠",
+    )
 
-    # --- PIE: TEMA ---
-    btn_tema = tk.Button(app, font=("Segoe UI", 12, "bold"), relief="raised", cursor="hand2", command=alternar_tema)
-    btn_tema.pack(pady=12)
+    # --- PIE: MODO, AYUDA Y TEMA ---
+    bottom_frame = tk.Frame(app)
+    bottom_frame.pack(pady=8)
+
+    btn_modo = tk.Button(
+        bottom_frame,
+        text=(
+            "  VOLVER A MODO NORMAL  " if MODO_ADMIN
+            else "  CAMBIAR A MODO ADMINISTRADOR  "
+        ),
+        font=("Segoe UI", 10, "bold"),
+        relief="raised", cursor="hand2", command=alternar_modo,
+    )
+    btn_modo.pack(side="left", padx=3)
+    Tooltip(
+        btn_modo,
+        "Cambia entre modo normal y administrador.\n"
+        "En modo normal, las acciones que lo necesiten piden UAC una a una.",
+    )
+
+    btn_ayuda_modos = tk.Button(
+        bottom_frame, text="  ℹ️  MODOS  ",
+        font=("Segoe UI", 10, "bold"),
+        relief="raised", cursor="hand2", command=explicar_modos,
+    )
+    btn_ayuda_modos.pack(side="left", padx=3)
+    Tooltip(
+        btn_ayuda_modos,
+        "Explica la diferencia entre el modo normal y el modo administrador.",
+    )
+
+    btn_tema = tk.Button(
+        bottom_frame, font=("Segoe UI", 10, "bold"),
+        relief="raised", cursor="hand2", command=alternar_tema,
+    )
+    btn_tema.pack(side="left", padx=3)
+    Tooltip(btn_tema, "Cambia entre tema claro y oscuro.")
 
     # Iniciar la interfaz con el tema configurado
     aplicar_tema()
