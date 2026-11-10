@@ -1,6 +1,6 @@
-# Pruebas de T4MW V.5
+# Pruebas de T4MW V.5.1
 
-Checklist para validar la versión **V.5** en Windows 10/11 antes de compilar y distribuir el `.exe`.
+Checklist para validar la versión **V.5.1** en Windows 10/11 antes de compilar y distribuir el `.exe`.
 
 Marca cada casilla cuando el resultado coincida con lo esperado. Si algo falla, anota el paso, el mensaje y la hora para revisar `%TEMP%\t4mw.log`.
 
@@ -16,39 +16,41 @@ Marca cada casilla cuando el resultado coincida con lo esperado. Si algo falla, 
 ## 1. Arranque, modos y menú
 
 - [ ] Ejecutar `python t4mw.py` sin administrador: **no debe aparecer UAC** y la ventana debe abrirse directamente.
-- [ ] Bajo el título aparece `Modo actual: Normal (UAC solo al usar acciones que lo requieren)`.
-- [ ] El título de la ventana muestra `T4MW - All4me Group (V.5)`.
-- [ ] La cabecera muestra `T O O L S 4 M E W - V.5`.
+- [ ] Bajo el título aparece el chip `● Modo normal` y, debajo, `UAC solo al usar acciones que lo requieren`.
+- [ ] El título de la ventana muestra `T4MW - All4me Group (V.5.1)`.
+- [ ] La cabecera muestra `T O O L S 4 M E W` y debajo `Versión V.5.1`.
 - [ ] Se ven el icono y el logo.
 - [ ] El menú principal tiene exactamente cinco botones: **Actualizar Todo el Software**, **Abrir Windows Update**, **Limpiar Sistema**, **Diagnóstico** y **Reparar Windows**.
 - [ ] No aparecen las acciones antiguas de RAM ni de reiniciar Explorer.
 - [ ] La barra superior ocupa todo el ancho y muestra cinco pestañas iguales: **Modo auto**, **Sistema**, **Más herramientas**, **Acerca de T4MW** y **Ayuda**, con **Ayuda** en el extremo derecho.
-- [ ] Las pestañas tienen fondo azul claro y una línea inferior de acento; el texto se lee bien.
+- [ ] Las pestañas tienen fondo azul suave y una línea inferior de acento; el texto se lee bien.
 - [ ] **Sistema** contiene Administrador de tareas, Servicios, Monitor de recursos y Visor de eventos.
 - [ ] **Más herramientas** contiene punto de restauración, análisis de Defender, Administrador de dispositivos, Administración de discos y Programador de tareas.
 - [ ] **Ayuda** contiene **Cómo funcionan los modos**, Abrir log y Ayuda de Windows.
 - [ ] No hay botón inferior de herramientas.
-- [ ] El pie muestra los botones **CAMBIAR A MODO ADMINISTRADOR**, **ℹ️ MODOS** y **MODO OSCURO**, sin recortes.
+- [ ] El pie muestra los botones redondeados **CAMBIAR A MODO ADMINISTRADOR**, **ℹ️ MODOS** y **MODO OSCURO**, sin recortes.
 - [ ] Pulsar **ℹ️ MODOS** y **Ayuda → Cómo funcionan los modos**: explican la diferencia entre los dos modos.
 - [ ] La ventana muestra los cinco botones, las cinco pestañas y el pie sin recortes.
-- [ ] Los cinco botones tienen un fondo azul suave y un borde fino, sin que el texto pierda legibilidad.
-- [ ] Cambiar entre modo claro y oscuro: las pestañas pasan a azul oscuro y los botones mantienen el contraste; no deben quedar marcos oscuros en modo claro.
+- [ ] Los cinco botones tienen esquinas redondeadas, fondo azul suave y borde fino, sin que el texto pierda legibilidad.
+- [ ] Al pasar el ratón por un botón cambia el tono y aparece un tooltip redondeado con la explicación.
+- [ ] En Windows 11, la ventana y los diálogos muestran esquinas redondeadas y la barra de título sigue al tema. En Windows 10 se ve el estilo clásico sin errores.
+- [ ] Cambiar entre modo claro y oscuro: las pestañas pasan a azul oscuro suave y los botones mantienen el contraste; no deben quedar marcos oscuros ni esquinas del color del contenedor en modo claro.
 - [ ] Abrir los diálogos de **Limpiar Sistema**, **Modo auto** y **Acerca de T4MW** en modo oscuro y en modo claro: deben usar los colores del tema.
 - [ ] Cerrar y volver a abrir la aplicación.
 
 ### Cambio a modo administrador
 
 - [ ] Pulsar **CAMBIAR A MODO ADMINISTRADOR**: pide confirmación y después UAC.
-- [ ] Aceptar el UAC: T4MW se cierra y vuelve a abrirse con `Modo actual: Administrador (todas las acciones elevadas)` y el botón pasa a **VOLVER A MODO NORMAL**.
+- [ ] Aceptar el UAC: T4MW se cierra y vuelve a abrirse con el chip `● Administrador` en verde y el botón pasa a **VOLVER A MODO NORMAL**.
 - [ ] Al pulsar **Diagnóstico** en modo administrador **no** aparece aviso de UAC.
-- [ ] Pulsar **VOLVER A MODO NORMAL**: se reinicia sin privilegios y vuelve a indicar `Modo actual: Normal`.
+- [ ] Pulsar **VOLVER A MODO NORMAL**: se reinicia sin privilegios y vuelve a mostrar el chip `● Modo normal`.
 - [ ] Cancelar el UAC al cambiar de modo: aparece el aviso **Permisos cancelados** y T4MW sigue abierto en el modo anterior.
 
 ## 2. Actualizar todo el software
 
 - [ ] Pulsar **Actualizar Todo el Software**: se abre una consola nueva.
 - [ ] En modo normal, abrir la consola **no** pide UAC; durante la actualización puede pedirse UAC por cada instalador que lo requiera.
-- [ ] La consola muestra el banner `### Tools4meW - V.5 ###`.
+- [ ] La consola muestra el banner `### Tools4meW - V.5.1 ###`.
 - [ ] Se ejecuta `winget upgrade --all ...` y lista las actualizaciones disponibles.
 - [ ] Al terminar, la consola se queda en `pause`.
 - [ ] El comando aparece en `%TEMP%\t4mw.log`.
@@ -117,7 +119,7 @@ Marca cada casilla cuando el resultado coincida con lo esperado. Si algo falla, 
 - [ ] Desmarcar las tres casillas y pulsar **Ejecutar modo automático**: muestra un aviso y no abre ninguna consola.
 - [ ] Con las tres casillas marcadas, ejecutar: se abre **una sola consola** con siete pasos en este orden: Winget, tres de limpieza y tres de diagnóstico rápido.
 - [ ] En modo normal, esa ejecución pide UAC una vez antes de abrir la consola.
-- [ ] La consola muestra el banner `### Tools4meW - V.5 ###` y termina en `pause`.
+- [ ] La consola muestra el banner `### Tools4meW - V.5.1 ###` y termina en `pause`.
 - [ ] El modo auto no vacía la papelera, no ejecuta `DISM /StartComponentCleanup` ni repara Windows.
 - [ ] Desmarcar **Actualizar software** y ejecutar: la consola no llama a `winget` y mantiene el orden limpieza → diagnóstico.
 - [ ] En modo normal, dejar solo **Limpieza rápida** y ejecutar: un único paso, sin UAC.
@@ -135,7 +137,7 @@ Marca cada casilla cuando el resultado coincida con lo esperado. Si algo falla, 
 - [ ] **Más herramientas → Análisis rápido de Defender**: pide confirmación, después UAC en modo normal, actualiza firmas y lanza un análisis rápido. Si hay otro antivirus, muestra el error en la consola.
 - [ ] **Más herramientas → Administrador de dispositivos / Administración de discos / Programador de tareas**: abre cada herramienta integrada.
 - [ ] Si alguna herramienta no está disponible, muestra un error legible y T4MW sigue abierto.
-- [ ] **Acerca de T4MW** (barra superior): muestra la versión V.5, el autor, la licencia MIT y los botones **Abrir repositorio** y **Abrir perfil de GitHub**.
+- [ ] **Acerca de T4MW** (barra superior): muestra la versión V.5.1, el autor, la licencia MIT y los botones **Abrir repositorio** y **Abrir perfil de GitHub**.
 - [ ] **Abrir repositorio** abre `https://github.com/DanSanMar/tools4mewindows` en el navegador.
 - [ ] **Abrir perfil de GitHub** abre `https://github.com/DanSanMar` en el navegador.
 - [ ] **Ayuda → Abrir log**: abre `%TEMP%\t4mw.log` en el editor predeterminado.
@@ -144,7 +146,7 @@ Marca cada casilla cuando el resultado coincida con lo esperado. Si algo falla, 
 
 ## 9. Log
 
-- [ ] `%TEMP%\t4mw.log` contiene `Iniciando T4MW V.5`.
+- [ ] `%TEMP%\t4mw.log` contiene `Iniciando T4MW V.5.1`.
 - [ ] Contiene `Ejecutando en modo normal en ...` o `Ejecutando en modo administrador en ...`.
 - [ ] Contiene una línea `Ejecutando: ... (requiere_admin=..., modo_admin=...)` por cada secuencia y una línea por cada paso.
 - [ ] Contiene `Consola lanzada: ...` o `Consola elevada lanzada: ...` con la ruta del `.bat` temporal.
@@ -154,7 +156,7 @@ Marca cada casilla cuando el resultado coincida con lo esperado. Si algo falla, 
 
 - [ ] `pyinstaller Tools4MeW.spec` termina sin errores.
 - [ ] `dist\Tools4MeW.exe` arranca en un Windows sin Python instalado.
-- [ ] El `.exe` **no pide UAC al abrirse**: arranca en modo normal, muestra el logo de cabecera, el icono de la ventana y la versión V.5.
+- [ ] El `.exe` **no pide UAC al abrirse**: arranca en modo normal, muestra el logo de cabecera, el icono de la ventana y la versión V.5.1.
 - [ ] En el `.exe`, **CAMBIAR A MODO ADMINISTRADOR** reinicia elevado y **VOLVER A MODO NORMAL** vuelve a abrir sin privilegios.
 - [ ] Al usar **Diagnóstico** en modo normal, el `.exe` pide UAC y lanza la consola elevada.
 - [ ] Los `.bat` temporales se crean en una carpeta propia (`%PUBLIC%\T4MW` o `%LOCALAPPDATA%\T4MW`) y se borran al terminar la consola.

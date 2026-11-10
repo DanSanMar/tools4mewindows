@@ -2,7 +2,7 @@
 
 Este documento explica cómo transformar `t4mw.py` en un ejecutable independiente para Windows, de modo que puedas compartirlo y usarlo sin necesidad de tener Python instalado en el equipo destino.
 
-> **Novedad V.5:** el ejecutable arranca en **modo normal** y pide UAC solo cuando usas una herramienta que lo necesita o cuando pulsas **CAMBIAR A MODO ADMINISTRADOR**. No hace falta compilar con `--uac-admin`.
+> **Novedad V.5.1:** la interfaz usa botones y ventanas redondeadas y una paleta más suave; el funcionamiento es el mismo que en V.5. El ejecutable arranca en **modo normal** y pide UAC solo cuando usas una herramienta que lo necesita o cuando pulsas **CAMBIAR A MODO ADMINISTRADOR**. No hace falta compilar con `--uac-admin`.
 
 ## ⚠️ Requisitos previos
 

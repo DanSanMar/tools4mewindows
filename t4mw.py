@@ -4,11 +4,12 @@ import ctypes
 import logging
 import tempfile
 import tkinter as tk
+import tkinter.font as tkfont
 from tkinter import messagebox
 import subprocess
 import shutil
 
-VERSION = "V.5"
+VERSION = "V.5.1"
 
 # --- LOGGING A ARCHIVO TEMPORAL (útil cuando se ejecuta como .exe sin consola) ---
 log_path = os.path.join(os.environ.get("TEMP", "."), "t4mw.log")
@@ -50,8 +51,66 @@ def resource_path(relative_path):
     base_path = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
     return os.path.join(base_path, relative_path)
 
+# --- AYUDAS DE DIBUJO CON ESQUINAS REDONDEADAS ---
+# Tkinter no tiene esquinas redondeadas nativas, así que las formas suaves
+# se dibujan sobre un Canvas con un polígono suavizado (smooth=True).
+TOOLTIP_BG = "#1f2937"
+TOOLTIP_BORDE = "#334155"
+
+def _puntos_redondeados(x1, y1, x2, y2, radio):
+    """Puntos de un polígono suavizado que dibuja un rectángulo redondeado."""
+    radio = max(0, min(radio, (x2 - x1) / 2, (y2 - y1) / 2))
+    return [
+        x1 + radio, y1, x2 - radio, y1, x2, y1,
+        x2, y1 + radio, x2, y2 - radio, x2, y2,
+        x2 - radio, y2, x1 + radio, y2, x1, y2,
+        x1, y2 - radio, x1, y1 + radio, x1, y1,
+    ]
+
+def _dibujar_redondeado(lienzo, x1, y1, x2, y2, radio, **opciones):
+    """Dibuja un rectángulo redondeado sobre un Canvas y devuelve su id."""
+    return lienzo.create_polygon(
+        _puntos_redondeados(x1, y1, x2, y2, radio), smooth=True, **opciones
+    )
+
+def aplicar_esquinas_windows(ventana, oscuro=False):
+    """Redondea las esquinas y ajusta la barra de título (Windows 11).
+
+    Es un detalle estético opcional: en Windows 10 o fuera de Windows,
+    dwmapi no está disponible y la llamada se ignora sin errores.
+    """
+    try:
+        ventana.update_idletasks()
+        user32 = ctypes.windll.user32
+        dwmapi = ctypes.windll.dwmapi
+        # HWND es de 64 bits en Windows x64: hay que declarar los tipos
+        user32.GetParent.argtypes = [ctypes.c_void_p]
+        user32.GetParent.restype = ctypes.c_void_p
+        dwmapi.DwmSetWindowAttribute.argtypes = [
+            ctypes.c_void_p, ctypes.c_uint, ctypes.c_void_p, ctypes.c_uint,
+        ]
+        dwmapi.DwmSetWindowAttribute.restype = ctypes.c_long
+
+        hwnd = user32.GetParent(ctypes.c_void_p(ventana.winfo_id()))
+        if not hwnd:
+            hwnd = ctypes.c_void_p(ventana.winfo_id())
+
+        # DWMWA_WINDOW_CORNER_PREFERENCE (33) = DWMWCP_ROUND (2)
+        esquina = ctypes.c_int(2)
+        dwmapi.DwmSetWindowAttribute(
+            hwnd, 33, ctypes.byref(esquina), ctypes.sizeof(esquina)
+        )
+        # DWMWA_USE_IMMERSIVE_DARK_MODE: 20 en Windows 11, 19 en Windows 10
+        modo = ctypes.c_int(1 if oscuro else 0)
+        for atributo in (20, 19):
+            dwmapi.DwmSetWindowAttribute(
+                hwnd, atributo, ctypes.byref(modo), ctypes.sizeof(modo)
+            )
+    except Exception as e:
+        logging.debug("No se pudo aplicar el estilo de ventana: %s", e)
+
 # --- CLASE PARA TOOLTIPS (EXPLICACIÓN) ---
-# Esta clase crea pequeñas ventanas flotantes de ayuda cuando pasas el ratón 
+# Esta clase crea pequeñas ventanas flotantes de ayuda cuando pasas el ratón
 # sobre un botón. Maneja eventos de entrada (<Enter>) y salida (<Leave>).
 class Tooltip:
     def __init__(self, widget, texto):
@@ -59,39 +118,178 @@ class Tooltip:
         self.texto = texto
         self.tip_window = None
         self.id = None
-        
-        # Bind de eventos
-        widget.bind("<Enter>", self.mostrar_tip)
-        widget.bind("<Leave>", self.ocultar_tip)
-        widget.bind("<ButtonPress>", self.ocultar_tip) # Ocultar si se hace clic
+
+        # add="+" para no pisar los efectos de hover del botón redondeado
+        widget.bind("<Enter>", self.mostrar_tip, add="+")
+        widget.bind("<Leave>", self.ocultar_tip, add="+")
+        widget.bind("<ButtonPress>", self.ocultar_tip, add="+")  # Ocultar al hacer clic
 
     def mostrar_tip(self, event=None):
         # Si ya hay una ventana de tooltip o no hay texto, salir
         if self.tip_window or not self.texto:
             return
-            
+
         # Calcular posición: Usamos winfo_rootx/y del widget
         # Añadimos un pequeño offset para que no tape el botón
         x = self.widget.winfo_rootx() + self.widget.winfo_width() + 10
         y = self.widget.winfo_rooty() + 10
-        
+
+        fuente = ("Segoe UI", 9)
+        medidor = tkfont.Font(font=fuente)
+        lineas = self.texto.split("\n")
+        ancho = max(medidor.measure(linea) for linea in lineas) + 28
+        alto = medidor.metrics("linespace") * len(lineas) + 14
+
         # Crear la ventana Toplevel
         self.tip_window = tw = tk.Toplevel(self.widget)
         tw.wm_overrideredirect(True)
         tw.wm_geometry(f"+{x}+{y}")
-        
-        # Crear el contenido del tooltip
-        label = tk.Label(tw, text=self.texto, justify='center',
-                         background="#2d3436", foreground="#ffffff",
-                         relief='solid', borderwidth=1,
-                         font=("Segoe UI", "14", "normal"), padx=5, pady=3)
-        label.pack()
+
+        # En Windows, el color clave hace transparentes las esquinas
+        transparente = "#ff00fe"
+        try:
+            tw.attributes("-transparentcolor", transparente)
+            fondo_lienzo = transparente
+        except tk.TclError:
+            fondo_lienzo = TOOLTIP_BG
+
+        lienzo = tk.Canvas(tw, width=ancho, height=alto, bg=fondo_lienzo,
+                           highlightthickness=0, bd=0)
+        lienzo.pack()
+        _dibujar_redondeado(lienzo, 1, 1, ancho - 1, alto - 1, 10,
+                            fill=TOOLTIP_BG, outline=TOOLTIP_BORDE, width=1)
+        lienzo.create_text(14, alto / 2, text=self.texto, fill="#ffffff",
+                           font=fuente, anchor="w", justify="left")
 
     def ocultar_tip(self, event=None):
         if self.tip_window:
             self.tip_window.destroy()
             self.tip_window = None
-            
+
+# --- BOTÓN CON ESQUINAS REDONDEADAS ---
+class BotonRedondeado(tk.Canvas):
+    """Botón dibujado sobre un Canvas para tener esquinas redondeadas.
+
+    Expone config()/configure() con los mismos nombres que un tk.Button
+    (bg, fg, activebackground, activeforeground, text) para que aplicar_tema()
+    pueda recolorear los botones sin casos especiales. El parámetro extra
+    'fondo' indica el color del contenedor, que se ve en las esquinas.
+    """
+
+    def __init__(self, master, texto="", command=None, *, icono="",
+                 alto=48, radio=14, relleno=20, anclaje="w",
+                 fondo=None, relleno_fondo="#ffffff", borde="#dbe7fb",
+                 sombra=None, fg="#1f2937", activebackground=None,
+                 activeforeground=None, fuente=("Segoe UI Semibold", 12)):
+        self._texto = f"{icono}   {texto}" if icono else texto
+        self._comando = command
+        self._radio = radio
+        self._relleno = relleno
+        self._anclaje = anclaje
+        self._fuente = fuente
+        self._fondo = fondo or master.cget("bg")
+        self._relleno_fondo = relleno_fondo
+        self._color_borde = borde
+        self._sombra = sombra
+        self._color_texto = fg
+        self._color_hover = activebackground or relleno_fondo
+        self._color_texto_hover = activeforeground or fg
+        self._hover = False
+        self._medidor = tkfont.Font(root=master, font=self._fuente)
+        # Alto mínimo según la fuente real, para no recortar texto con DPI alto
+        self._alto = max(alto, self._medidor.metrics("linespace") + 14)
+        # Espacio inferior para que la sombra no quede recortada
+        self._extra_sombra = 3 if sombra else 0
+
+        super().__init__(master, height=self._alto + self._extra_sombra,
+                         highlightthickness=0, bd=0, cursor="hand2")
+        super().config(bg=self._fondo)
+        self._ajustar_ancho()
+        self.bind("<Configure>", lambda e: self._pintar())
+        self.bind("<Enter>", self._entrar)
+        self.bind("<Leave>", self._salir)
+        self.bind("<ButtonRelease-1>", self._pulsar)
+        self._pintar()
+
+    def _ajustar_ancho(self):
+        ancho = self._medidor.measure(self._texto) + self._relleno * 2
+        super().config(width=max(ancho, 1))
+
+    def _pintar(self):
+        self.delete("all")
+        ancho = max(self.winfo_width(),
+                    self._medidor.measure(self._texto) + self._relleno * 2)
+        alto = self._alto
+        relleno = self._color_hover if self._hover else self._relleno_fondo
+        color_texto = self._color_texto_hover if self._hover else self._color_texto
+
+        if self._sombra:
+            _dibujar_redondeado(self, 2, 3, ancho - 1, alto + 1, self._radio,
+                                fill=self._sombra, outline="")
+        _dibujar_redondeado(self, 1, 1, ancho - 1, alto - 1, self._radio,
+                            fill=relleno, outline=self._color_borde, width=1)
+        if self._anclaje == "w":
+            x = self._relleno
+        elif self._anclaje == "e":
+            x = ancho - self._relleno
+        else:
+            x = ancho / 2
+        self.create_text(x, alto / 2, text=self._texto, fill=color_texto,
+                         font=self._fuente, anchor=self._anclaje)
+
+    def _entrar(self, _evento=None):
+        self._hover = True
+        self._pintar()
+
+    def _salir(self, _evento=None):
+        self._hover = False
+        self._pintar()
+
+    def _pulsar(self, _evento=None):
+        if self._comando:
+            self._comando()
+
+    def config(self, cnf=None, **kw):
+        if cnf is not None:
+            kw = {**dict(cnf), **kw}
+        if "fondo" in kw:
+            self._fondo = kw.pop("fondo")
+            super().config(bg=self._fondo)
+        if "bg" in kw:
+            self._relleno_fondo = kw.pop("bg")
+        if "fg" in kw:
+            self._color_texto = kw.pop("fg")
+        if "activebackground" in kw:
+            self._color_hover = kw.pop("activebackground")
+        if "activeforeground" in kw:
+            self._color_texto_hover = kw.pop("activeforeground")
+        if "borde" in kw:
+            self._color_borde = kw.pop("borde")
+        if "sombra" in kw:
+            self._sombra = kw.pop("sombra")
+        if "text" in kw:
+            self._texto = kw.pop("text")
+            self._ajustar_ancho()
+        if kw:
+            super().config(**kw)
+        if hasattr(self, "_medidor"):
+            self._pintar()
+
+    configure = config
+
+def boton_dialogo(parent, texto, comando, fondo):
+    """Botón redondeado con la paleta del tema actual para los diálogos."""
+    return BotonRedondeado(
+        parent, texto, comando,
+        alto=40, radio=12, relleno=16, fondo=fondo,
+        relleno_fondo=TEMA_ACTUAL.get("btn", "#eef1f7"),
+        borde=TEMA_ACTUAL.get("btn_borde", "#d7e0ee"),
+        fg=TEMA_ACTUAL.get("fg", "#1f2937"),
+        activebackground=TEMA_ACTUAL.get("btn_hover", "#e2e8f3"),
+        activeforeground=TEMA_ACTUAL.get("fg", "#1f2937"),
+        fuente=("Segoe UI Semibold", 10),
+    )
+
 # --- VERIFICACIÓN DE ADMINISTRADOR ---
 def es_admin():
     try:
@@ -205,13 +403,12 @@ def elegir_opcion(titulo, mensaje, opciones):
     ventana.transient(app)
     ventana.resizable(False, False)
 
-    bg = TEMA_ACTUAL.get("bg", "#f1f5f9")
-    fg = TEMA_ACTUAL.get("fg", "#0f172a")
-    btn_bg = TEMA_ACTUAL.get("btn", "#e2e8f0")
-    btn_hover = TEMA_ACTUAL.get("btn_hover", "#cbd5e1")
+    bg = TEMA_ACTUAL.get("bg", "#f4f6fb")
+    fg = TEMA_ACTUAL.get("fg", "#1f2937")
     ventana.config(bg=bg)
+    aplicar_esquinas_windows(ventana, TEMA_ACTUAL.get("oscuro", False))
 
-    contenido = tk.Frame(ventana, bg=bg, padx=20, pady=20)
+    contenido = tk.Frame(ventana, bg=bg, padx=22, pady=22)
     contenido.pack(fill="both", expand=True)
 
     tk.Label(
@@ -226,11 +423,8 @@ def elegir_opcion(titulo, mensaje, opciones):
         ventana.destroy()
 
     for texto, valor in opciones:
-        tk.Button(
-            contenido, text=texto, command=lambda v=valor: elegir(v),
-            font=("Segoe UI Semibold", 11), anchor="w", padx=12, pady=8,
-            bg=btn_bg, fg=fg, activebackground=btn_hover, activeforeground=fg,
-            relief="flat", cursor="hand2",
+        boton_dialogo(
+            contenido, texto, lambda v=valor: elegir(v), bg,
         ).pack(fill="x", pady=3)
 
     ventana.bind("<Escape>", lambda e: ventana.destroy())
@@ -259,13 +453,13 @@ def elegir_limpieza():
     ventana.transient(app)
     ventana.resizable(False, False)
 
-    bg = TEMA_ACTUAL.get("bg", "#f1f5f9")
-    fg = TEMA_ACTUAL.get("fg", "#0f172a")
-    btn_bg = TEMA_ACTUAL.get("btn", "#e2e8f0")
-    btn_hover = TEMA_ACTUAL.get("btn_hover", "#cbd5e1")
+    bg = TEMA_ACTUAL.get("bg", "#f4f6fb")
+    fg = TEMA_ACTUAL.get("fg", "#1f2937")
+    btn_bg = TEMA_ACTUAL.get("btn", "#eef1f7")
     ventana.config(bg=bg)
+    aplicar_esquinas_windows(ventana, TEMA_ACTUAL.get("oscuro", False))
 
-    contenido = tk.Frame(ventana, bg=bg, padx=20, pady=20)
+    contenido = tk.Frame(ventana, bg=bg, padx=22, pady=22)
     contenido.pack(fill="both", expand=True)
 
     if MODO_ADMIN:
@@ -321,11 +515,8 @@ def elegir_limpieza():
         ("Limpieza completa", "completa"),
         ("Cancelar", None),
     ):
-        tk.Button(
-            contenido, text=texto, command=lambda v=valor: elegir(v),
-            font=("Segoe UI Semibold", 11), anchor="w", padx=12, pady=8,
-            bg=btn_bg, fg=fg, activebackground=btn_hover, activeforeground=fg,
-            relief="flat", cursor="hand2",
+        boton_dialogo(
+            contenido, texto, lambda v=valor: elegir(v), bg,
         ).pack(fill="x", pady=3)
 
     ventana.bind("<Escape>", lambda e: elegir(None))
@@ -353,13 +544,13 @@ def elegir_modo_auto():
     ventana.transient(app)
     ventana.resizable(False, False)
 
-    bg = TEMA_ACTUAL.get("bg", "#f1f5f9")
-    fg = TEMA_ACTUAL.get("fg", "#0f172a")
-    btn_bg = TEMA_ACTUAL.get("btn", "#e2e8f0")
-    btn_hover = TEMA_ACTUAL.get("btn_hover", "#cbd5e1")
+    bg = TEMA_ACTUAL.get("bg", "#f4f6fb")
+    fg = TEMA_ACTUAL.get("fg", "#1f2937")
+    btn_bg = TEMA_ACTUAL.get("btn", "#eef1f7")
     ventana.config(bg=bg)
+    aplicar_esquinas_windows(ventana, TEMA_ACTUAL.get("oscuro", False))
 
-    contenido = tk.Frame(ventana, bg=bg, padx=20, pady=20)
+    contenido = tk.Frame(ventana, bg=bg, padx=22, pady=22)
     contenido.pack(fill="both", expand=True)
 
     tk.Label(
@@ -432,18 +623,12 @@ def elegir_modo_auto():
     def cancelar():
         ventana.destroy()
 
-    tk.Button(
-        contenido, text="Ejecutar modo automático", command=ejecutar,
-        font=("Segoe UI Semibold", 11), anchor="w", padx=12, pady=8,
-        bg=btn_bg, fg=fg, activebackground=btn_hover, activeforeground=fg,
-        relief="flat", cursor="hand2",
+    boton_dialogo(
+        contenido, "Ejecutar modo automático", ejecutar, bg,
     ).pack(fill="x", pady=3)
 
-    tk.Button(
-        contenido, text="Cancelar", command=cancelar,
-        font=("Segoe UI Semibold", 11), anchor="w", padx=12, pady=8,
-        bg=btn_bg, fg=fg, activebackground=btn_hover, activeforeground=fg,
-        relief="flat", cursor="hand2",
+    boton_dialogo(
+        contenido, "Cancelar", cancelar, bg,
     ).pack(fill="x", pady=3)
 
     ventana.bind("<Escape>", lambda e: cancelar())
@@ -861,13 +1046,12 @@ def acerca_de():
     ventana.transient(app)
     ventana.resizable(False, False)
 
-    bg = TEMA_ACTUAL.get("bg", "#f1f5f9")
-    fg = TEMA_ACTUAL.get("fg", "#0f172a")
-    btn_bg = TEMA_ACTUAL.get("btn", "#e2e8f0")
-    btn_hover = TEMA_ACTUAL.get("btn_hover", "#cbd5e1")
+    bg = TEMA_ACTUAL.get("bg", "#f4f6fb")
+    fg = TEMA_ACTUAL.get("fg", "#1f2937")
     ventana.config(bg=bg)
+    aplicar_esquinas_windows(ventana, TEMA_ACTUAL.get("oscuro", False))
 
-    contenido = tk.Frame(ventana, bg=bg, padx=24, pady=20)
+    contenido = tk.Frame(ventana, bg=bg, padx=26, pady=22)
     contenido.pack(fill="both", expand=True)
 
     tk.Label(
@@ -877,7 +1061,8 @@ def acerca_de():
 
     tk.Label(
         contenido, text=f"Versión {VERSION}",
-        bg=bg, fg=fg, font=("Segoe UI", 11),
+        bg=bg, fg=TEMA_ACTUAL.get("accent", "#4f7cf7"),
+        font=("Segoe UI Semibold", 10),
     ).pack(pady=(0, 12))
 
     tk.Label(
@@ -904,12 +1089,7 @@ def acerca_de():
         ("Abrir perfil de GitHub", abrir_perfil),
         ("Cerrar", ventana.destroy),
     ):
-        tk.Button(
-            contenido, text=texto, command=comando,
-            font=("Segoe UI Semibold", 11), anchor="w", padx=12, pady=8,
-            bg=btn_bg, fg=fg, activebackground=btn_hover, activeforeground=fg,
-            relief="flat", cursor="hand2",
-        ).pack(fill="x", pady=3)
+        boton_dialogo(contenido, texto, comando, bg).pack(fill="x", pady=3)
 
     ventana.bind("<Escape>", lambda e: ventana.destroy())
     ventana.protocol("WM_DELETE_WINDOW", ventana.destroy)
@@ -1067,7 +1247,7 @@ def explicar_modos():
 try:
     app = tk.Tk()
     app.title(f"T4MW - All4me Group ({VERSION})")
-    app.geometry("600x700+500+20")
+    app.geometry("620x720+480+20")
     app.resizable(True, True)
 
     # Icono de la ventana (el .exe ya lo lleva, pero así también se ve al ejecutar el .py)
@@ -1114,52 +1294,54 @@ try:
     for columna in range(5):
         barra_menus.grid_columnconfigure(columna, weight=1, uniform="pestanas")
 
+    fuente_pestanas = ("Segoe UI Semibold", 9)
+
     # Cinco pestañas de ancho uniforme: Modo auto, Sistema, Más, Acerca y Ayuda.
     # Sistema agrupa la supervisión básica; Más herramientas, el mantenimiento
     # y las utilidades avanzadas de Windows.
     btn_menu_ayuda = tk.Menubutton(
         barra_menus, text="Ayuda",
-        font=("Segoe UI Semibold", 9), relief="flat", bd=0,
-        padx=6, pady=6, highlightthickness=0, cursor="hand2",
+        font=fuente_pestanas, relief="flat", bd=0,
+        padx=6, pady=7, highlightthickness=0, cursor="hand2",
     )
     menu_ayuda = tk.Menu(btn_menu_ayuda, tearoff=0)
     poblar_menu_ayuda(menu_ayuda)
     btn_menu_ayuda.config(menu=menu_ayuda)
-    btn_menu_ayuda.grid(row=0, column=4, sticky="ew", padx=1, pady=2)
+    btn_menu_ayuda.grid(row=0, column=4, sticky="ew", padx=1)
 
     btn_menu_acerca = tk.Button(
         barra_menus, text="Acerca de T4MW", command=acerca_de,
-        font=("Segoe UI Semibold", 9), relief="flat", bd=0,
-        padx=6, pady=6, highlightthickness=0, cursor="hand2",
+        font=fuente_pestanas, relief="flat", bd=0,
+        padx=6, pady=7, highlightthickness=0, cursor="hand2",
     )
-    btn_menu_acerca.grid(row=0, column=3, sticky="ew", padx=1, pady=2)
+    btn_menu_acerca.grid(row=0, column=3, sticky="ew", padx=1)
 
     btn_menu_sistema = tk.Menubutton(
         barra_menus, text="Sistema",
-        font=("Segoe UI Semibold", 9), relief="flat", bd=0,
-        padx=6, pady=6, highlightthickness=0, cursor="hand2",
+        font=fuente_pestanas, relief="flat", bd=0,
+        padx=6, pady=7, highlightthickness=0, cursor="hand2",
     )
     menu_sistema = tk.Menu(btn_menu_sistema, tearoff=0)
     poblar_menu_sistema(menu_sistema)
     btn_menu_sistema.config(menu=menu_sistema)
-    btn_menu_sistema.grid(row=0, column=1, sticky="ew", padx=1, pady=2)
+    btn_menu_sistema.grid(row=0, column=1, sticky="ew", padx=1)
 
     btn_menu_mas = tk.Menubutton(
         barra_menus, text="Más herramientas",
-        font=("Segoe UI Semibold", 9), relief="flat", bd=0,
-        padx=6, pady=6, highlightthickness=0, cursor="hand2",
+        font=fuente_pestanas, relief="flat", bd=0,
+        padx=6, pady=7, highlightthickness=0, cursor="hand2",
     )
     menu_mas = tk.Menu(btn_menu_mas, tearoff=0)
     poblar_menu_mas(menu_mas)
     btn_menu_mas.config(menu=menu_mas)
-    btn_menu_mas.grid(row=0, column=2, sticky="ew", padx=1, pady=2)
+    btn_menu_mas.grid(row=0, column=2, sticky="ew", padx=1)
 
     btn_modo_auto = tk.Button(
         barra_menus, text="Modo auto", command=modo_auto,
-        font=("Segoe UI Semibold", 9), relief="flat", bd=0,
-        padx=6, pady=6, highlightthickness=0, cursor="hand2",
+        font=fuente_pestanas, relief="flat", bd=0,
+        padx=6, pady=7, highlightthickness=0, cursor="hand2",
     )
-    btn_modo_auto.grid(row=0, column=0, sticky="ew", padx=1, pady=2)
+    btn_modo_auto.grid(row=0, column=0, sticky="ew", padx=1)
 
     linea_menus = tk.Frame(app, height=2)
     linea_menus.pack(fill="x")
@@ -1175,43 +1357,57 @@ try:
         logo_img = None
         logging.warning("No se pudo cargar la imagen: %s", e)
 
-    tema_oscuro = False 
+    tema_oscuro = False
 
     # Función que cambia los colores de todos los elementos de la interfaz
     def aplicar_tema():
         if tema_oscuro:
-            bg_main = "#0f172a"     # Colores tipo "Slate" oscuro
-            fg_primary = "#f8fafc"
-            fg_secondary = "#94a3b8"
-            accent = "#38bdf8"      # Azul brillante
-            btn_bg = "#334155"
-            btn_hover = "#475569"
-            barra_bg = "#172554"    # Azul muy oscuro para las pestañas
-            barra_hover = "#1e3a8a"
-            barra_borde = "#38bdf8"
-            btn_accion_bg = "#1e3a8a"
-            btn_accion_hover = "#1e40af"
-            btn_accion_borde = "#0ea5e9"
+            bg_main = "#12161f"          # Fondo oscuro suave (menos azulado)
+            fg_primary = "#e9eef7"
+            fg_secondary = "#98a5b8"
+            accent = "#6ea8fe"           # Azul suave para textos y acentos
+            accent_btn = "#2f6fd0"       # Azul de botones (contraste con blanco)
+            accent_hover = "#3a7ce0"
+            btn_bg = "#1e2531"
+            btn_hover = "#28313f"
+            btn_borde = "#2c3a4e"
+            barra_bg = "#161d29"         # Barra de pestañas
+            barra_hover = "#1e2836"
+            barra_borde = "#2b3d5c"
+            btn_accion_bg = "#1a2333"
+            btn_accion_hover = "#223047"
+            btn_accion_borde = "#2c3f5c"
+            chip_bg = "#1a2333"
+            chip_borde = "#2c3f5c"
+            sombra = "#0c1017"
         else:
-            bg_main = "#f1f5f9"     # Colores claros/grises
-            fg_primary = "#0f172a"
-            fg_secondary = "#64748b"
-            accent = "#0284c7"
-            btn_bg = "#e2e8f0"
-            btn_hover = "#cbd5e1"
-            barra_bg = "#dbeafe"    # Azul claro para las pestañas
-            barra_hover = "#bfdbfe"
-            barra_borde = "#93c5fd"
-            btn_accion_bg = "#e0f2fe"
-            btn_accion_hover = "#bae6fd"
-            btn_accion_borde = "#7dd3fc"
+            bg_main = "#f4f6fb"          # Blanco roto, más limpio que el gris
+            fg_primary = "#1f2937"
+            fg_secondary = "#6b7a90"
+            accent = "#4f7cf7"
+            accent_btn = "#3f6fe0"       # Azul de botones (contraste con blanco)
+            accent_hover = "#3560c9"
+            btn_bg = "#eef1f7"
+            btn_hover = "#e2e8f3"
+            btn_borde = "#dbe3ef"
+            barra_bg = "#e9f0fd"         # Azul muy suave para las pestañas
+            barra_hover = "#dce8fb"
+            barra_borde = "#bcd3f7"
+            btn_accion_bg = "#f2f7ff"
+            btn_accion_hover = "#e7f0ff"
+            btn_accion_borde = "#d3e3fb"
+            chip_bg = "#ffffff"
+            chip_borde = "#dbe4f2"
+            sombra = "#e3e9f4"
 
         # Guardamos la paleta para que los diálogos modales la usen
         TEMA_ACTUAL.update({
             "bg": bg_main,
             "fg": fg_primary,
+            "fg_secondary": fg_secondary,
             "btn": btn_bg,
             "btn_hover": btn_hover,
+            "btn_borde": btn_borde,
             "accent": accent,
             "barra": barra_bg,
             "barra_hover": barra_hover,
@@ -1219,6 +1415,10 @@ try:
             "btn_accion": btn_accion_bg,
             "btn_accion_hover": btn_accion_hover,
             "btn_accion_borde": btn_accion_borde,
+            "chip": chip_bg,
+            "chip_borde": chip_borde,
+            "sombra": sombra,
+            "oscuro": tema_oscuro,
         })
 
         # Aplicación de los colores a cada componente
@@ -1226,26 +1426,29 @@ try:
         barra_menus.config(bg=barra_bg)
         linea_menus.config(bg=barra_borde)
         logo_frame.config(bg=bg_main)
-        
+
         # Lógica de colores para el logo (por si falla la imagen, usa el rayo)
         if not logo_img:
             lbl_logo_icon.config(text="⚡", bg=bg_main, fg=accent)
         else:
             lbl_logo_icon.config(image=logo_img, bg=bg_main)
-            lbl_logo_icon.image = logo_img # Referencia obligatoria en Tkinter
+            lbl_logo_icon.image = logo_img  # Referencia obligatoria en Tkinter
 
         lbl_logo_text.config(bg=bg_main, fg=fg_primary)
+        lbl_version.config(bg=bg_main, fg=accent)
         lbl_modo.config(bg=bg_main, fg=fg_secondary)
 
         container.config(bg=bg_main)
-        
+
         # Bucle para actualizar cada botón creado
         for frame in frames_botones:
-            frame.config(bg=btn_accion_borde)
+            frame.config(bg=bg_main)
         for btn in botones:
             btn.config(
+                fondo=bg_main,
                 bg=btn_accion_bg, fg=fg_primary,
                 activebackground=btn_accion_hover, activeforeground=fg_primary,
+                borde=btn_accion_borde, sombra=sombra,
             )
 
         for btn_menu in (btn_modo_auto, btn_menu_sistema, btn_menu_mas, btn_menu_acerca, btn_menu_ayuda):
@@ -1256,23 +1459,26 @@ try:
 
         btn_tema.config(
             text="  MODO CLARO  " if tema_oscuro else "  MODO OSCURO  ",
-            bg=accent,
-            fg="#ffffff",
-            activebackground="#0ea5e9" if tema_oscuro else "#0369a1",
-            activeforeground="#ffffff",
+            fondo=bg_main, bg=accent_btn, fg="#ffffff", borde=accent_btn,
+            activebackground=accent_hover, activeforeground="#ffffff",
         )
         bottom_frame.config(bg=bg_main)
         btn_ayuda_modos.config(
-            bg=btn_bg, fg=fg_primary,
+            fondo=bg_main, bg=btn_bg, fg=fg_primary, borde=btn_borde,
             activebackground=btn_hover, activeforeground=fg_primary,
         )
         btn_modo.config(
-            bg="#16a34a" if MODO_ADMIN else accent,
+            fondo=bg_main,
+            bg="#15803d" if MODO_ADMIN else accent_btn,
             fg="#ffffff",
-            activebackground="#15803d" if MODO_ADMIN else
-            ("#0ea5e9" if tema_oscuro else "#0369a1"),
+            borde="#15803d" if MODO_ADMIN else accent_btn,
+            activebackground="#166534" if MODO_ADMIN else accent_hover,
             activeforeground="#ffffff",
         )
+
+        # Chip del modo y barra de título acorde al tema
+        pintar_chip_modo()
+        aplicar_esquinas_windows(app, tema_oscuro)
 
     def alternar_tema():
         global tema_oscuro
@@ -1287,50 +1493,97 @@ try:
             relanzar_como_admin()
 
     # --- DISEÑO DE CABECERA ---
-    logo_frame = tk.Frame(app, pady=20)
+    logo_frame = tk.Frame(app, pady=14)
     logo_frame.pack(fill="x")
 
     # Contenedor del icono/logo
     lbl_logo_icon = tk.Label(logo_frame)
     lbl_logo_icon.pack()
-    
-    lbl_logo_text = tk.Label(logo_frame, text=f"T O O L S 4 M E W - {VERSION}", font=("Segoe UI", 22, "bold"))
+
+    lbl_logo_text = tk.Label(
+        logo_frame, text="T O O L S 4 M E W",
+        font=("Segoe UI", 22, "bold"),
+    )
     lbl_logo_text.pack()
 
-    # Indicador del modo de ejecución
+    lbl_version = tk.Label(
+        logo_frame, text=f"Versión {VERSION}",
+        font=("Segoe UI Semibold", 9),
+    )
+    lbl_version.pack(pady=(2, 0))
+
+    # Chip redondeado con el modo de ejecución actual
+    chip_modo = tk.Canvas(logo_frame, height=26, highlightthickness=0, bd=0)
+    chip_modo.pack(pady=(8, 0))
+
     lbl_modo = tk.Label(
         logo_frame,
         text=(
-            "Modo actual: Administrador (todas las acciones elevadas)"
+            "Todas las acciones se ejecutan elevadas"
             if MODO_ADMIN else
-            "Modo actual: Normal (UAC solo al usar acciones que lo requieren)"
+            "UAC solo al usar acciones que lo requieren"
         ),
-        font=("Segoe UI", 10, "bold"),
+        font=("Segoe UI", 9),
     )
-    lbl_modo.pack(pady=2)
+    lbl_modo.pack(pady=(4, 0))
 
+    medidor_chip = tkfont.Font(font=("Segoe UI Semibold", 9))
+
+    def pintar_chip_modo():
+        """Dibuja el chip del modo con un punto de color y esquinas redondeadas."""
+        texto = "Administrador" if MODO_ADMIN else "Modo normal"
+        fuente = ("Segoe UI Semibold", 9)
+        alto = max(26, medidor_chip.metrics("linespace") + 12)
+        punto = 8
+        ancho = medidor_chip.measure(texto) + 46
+
+        chip_modo.config(width=ancho, height=alto,
+                         bg=TEMA_ACTUAL.get("bg", "#f4f6fb"))
+        chip_modo.delete("all")
+        _dibujar_redondeado(
+            chip_modo, 1, 1, ancho - 1, alto - 1, alto / 2,
+            fill=TEMA_ACTUAL.get("chip", "#ffffff"),
+            outline=TEMA_ACTUAL.get("chip_borde", "#dbe4f2"),
+            width=1,
+        )
+        color_punto = "#22c55e" if MODO_ADMIN else TEMA_ACTUAL.get("accent", "#4f7cf7")
+        chip_modo.create_oval(
+            13, alto / 2 - punto / 2, 13 + punto, alto / 2 + punto / 2,
+            fill=color_punto, outline="",
+        )
+        chip_modo.create_text(
+            13 + punto + 8, alto / 2, text=texto, anchor="w",
+            fill=TEMA_ACTUAL.get("fg", "#1f2937"), font=fuente,
+        )
 
     # Contenedor para los botones
     container = tk.Frame(app)
-    container.pack(fill="both", expand=True, padx=40)
+    container.pack(fill="both", expand=True, padx=30, pady=(6, 0))
 
     botones = []
     frames_botones = []
 
     # Función auxiliar para crear botones con un estilo unificado y tooltip
     def crear_boton_moderno(texto, comando, descripcion, icono):
-        frame_btn = tk.Frame(container, bg="#0f172a") 
-        frame_btn.pack(fill="x", pady=3)
+        frame_btn = tk.Frame(container)
+        frame_btn.pack(fill="x", pady=4)
         frames_botones.append(frame_btn)
-        
-        full_text = f"  {icono}   {texto}"
-        btn = tk.Button(frame_btn, text=full_text, font=("Segoe UI Semibold", 14),
-                       anchor="w", padx=20, pady=8,
-                       relief="flat", bd=0, highlightthickness=0,
-                       cursor="hand2", command=comando)
-        btn.pack(fill="x", padx=1, pady=1)
+
+        btn = BotonRedondeado(
+            frame_btn, texto, comando, icono=icono,
+            alto=48, radio=14, relleno=20,
+            fondo=TEMA_ACTUAL.get("bg", "#f4f6fb"),
+            relleno_fondo=TEMA_ACTUAL.get("btn_accion", "#f2f7ff"),
+            borde=TEMA_ACTUAL.get("btn_accion_borde", "#d3e3fb"),
+            fg=TEMA_ACTUAL.get("fg", "#1f2937"),
+            activebackground=TEMA_ACTUAL.get("btn_accion_hover", "#e7f0ff"),
+            activeforeground=TEMA_ACTUAL.get("fg", "#1f2937"),
+            sombra=TEMA_ACTUAL.get("sombra", "#e3e9f4"),
+            fuente=("Segoe UI Semibold", 12),
+        )
+        btn.pack(fill="x")
         botones.append(btn)
-        Tooltip(btn, descripcion) # Asigna la ayuda flotante
+        Tooltip(btn, descripcion)  # Asigna la ayuda flotante
 
     # --- DEFINICIÓN DE BOTONES ---
     crear_boton_moderno(
@@ -1365,41 +1618,46 @@ try:
 
     # --- PIE: MODO, AYUDA Y TEMA ---
     bottom_frame = tk.Frame(app)
-    bottom_frame.pack(pady=8)
+    bottom_frame.pack(pady=(4, 14))
 
-    btn_modo = tk.Button(
-        bottom_frame,
-        text=(
-            "  VOLVER A MODO NORMAL  " if MODO_ADMIN
-            else "  CAMBIAR A MODO ADMINISTRADOR  "
-        ),
-        font=("Segoe UI", 10, "bold"),
-        relief="raised", cursor="hand2", command=alternar_modo,
-    )
-    btn_modo.pack(side="left", padx=3)
-    Tooltip(
-        btn_modo,
+    def crear_boton_pie(texto, comando, descripcion, relleno_fondo, borde, fg, hover):
+        btn = BotonRedondeado(
+            bottom_frame, texto, comando,
+            alto=34, radio=17, relleno=16, anclaje="center",
+            fondo=TEMA_ACTUAL.get("bg", "#f4f6fb"),
+            relleno_fondo=relleno_fondo, borde=borde, fg=fg,
+            activebackground=hover, activeforeground=fg,
+            fuente=("Segoe UI Semibold", 9),
+        )
+        btn.pack(side="left", padx=4)
+        Tooltip(btn, descripcion)
+        return btn
+
+    btn_modo = crear_boton_pie(
+        "  VOLVER A MODO NORMAL  " if MODO_ADMIN
+        else "  CAMBIAR A MODO ADMINISTRADOR  ",
+        alternar_modo,
         "Cambia entre modo normal y administrador.\n"
         "En modo normal, las acciones que lo necesiten piden UAC una a una.",
+        "#15803d" if MODO_ADMIN else "#3f6fe0",
+        "#15803d" if MODO_ADMIN else "#3f6fe0",
+        "#ffffff",
+        "#166534" if MODO_ADMIN else "#3560c9",
     )
 
-    btn_ayuda_modos = tk.Button(
-        bottom_frame, text="  ℹ️  MODOS  ",
-        font=("Segoe UI", 10, "bold"),
-        relief="raised", cursor="hand2", command=explicar_modos,
-    )
-    btn_ayuda_modos.pack(side="left", padx=3)
-    Tooltip(
-        btn_ayuda_modos,
+    btn_ayuda_modos = crear_boton_pie(
+        "  ℹ️  MODOS  ",
+        explicar_modos,
         "Explica la diferencia entre el modo normal y el modo administrador.",
+        "#eef1f7", "#dbe3ef", "#1f2937", "#e2e8f3",
     )
 
-    btn_tema = tk.Button(
-        bottom_frame, font=("Segoe UI", 10, "bold"),
-        relief="raised", cursor="hand2", command=alternar_tema,
+    btn_tema = crear_boton_pie(
+        "",
+        alternar_tema,
+        "Cambia entre tema claro y oscuro.",
+        "#3f6fe0", "#3f6fe0", "#ffffff", "#3560c9",
     )
-    btn_tema.pack(side="left", padx=3)
-    Tooltip(btn_tema, "Cambia entre tema claro y oscuro.")
 
     # Iniciar la interfaz con el tema configurado
     aplicar_tema()

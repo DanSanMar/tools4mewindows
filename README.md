@@ -3,7 +3,7 @@
 
 **T4MW (Tools4me Windows)** es una suite de mantenimiento ligera y potente escrita en Python. Está diseñada para centralizar las tareas de optimización más comunes de Windows en una interfaz gráfica moderna, intuitiva y fácil de usar, eliminando la necesidad de recordar comandos complejos de la terminal.
 
-![Versión](https://img.shields.io/badge/Versi%C3%B3n-V.5-blue)
+![Versión](https://img.shields.io/badge/Versi%C3%B3n-V.5.1-blue)
 ![Python](https://img.shields.io/badge/Python-3.x-green)
 ![OS](https://img.shields.io/badge/OS-Windows-informational)
 ![Licencia](https://img.shields.io/badge/Licencia-MIT-yellow)
@@ -45,7 +45,7 @@ Las acciones largas piden confirmación antes de ejecutarse; el **Modo auto** se
 
 ---
 
-## 🎛️ Modos de ejecución (V.5)
+## 🎛️ Modos de ejecución (V.5.1)
 
 T4MW arranca en **modo normal** y solo pide permisos de administrador cuando hacen falta. La aplicación muestra el modo actual bajo el título y lo registra en el log.
 
@@ -79,11 +79,13 @@ Usa los botones del pie de la ventana:
 
 T4MW incluye un **sistema de temas dinámico**:
 
-- **Modo oscuro**: para reducir la fatiga visual (estética slate/azul).
-- **Modo claro**: interfaz limpia y profesional.
+- **Modo oscuro**: paleta oscura suave, sin azules saturados, para reducir la fatiga visual.
+- **Modo claro**: fondo blanco roto y azules suaves, con aspecto limpio y actual.
+- **Botones redondeados**: las acciones principales se dibujan con esquinas suaves y un borde fino, con efecto de resaltado al pasar el ratón.
+- **Chip de modo**: bajo la versión se muestra el modo actual con un punto de color (azul en modo normal, verde en administrador).
+- **Ventana redondeada**: en Windows 11 la ventana y los diálogos usan esquinas redondeadas y la barra de título sigue al tema claro u oscuro. En Windows 10 se mantiene el estilo del sistema.
 - **Tooltips informativos**: cada botón muestra una breve explicación de lo que hace al pasar el ratón.
-- **Barra superior de ancho completo**: cinco pestañas iguales con fondo azul claro y borde inferior de acento.
-- **Botones principales con color suave**: fondo azul claro y borde fino para distinguirlos sin recargar la interfaz.
+- **Barra superior de ancho completo**: cinco pestañas iguales con fondo azul suave y línea inferior de acento.
 
 ---
 
@@ -121,7 +123,15 @@ El ejecutable aparece en `dist/Tools4MeW.exe`. Para el método manual y la soluc
 
 ---
 
-## 🆕 Novedades V.5
+## 🆕 Novedades V.5.1
+
+- Nueva estética: botones y chips con **esquinas redondeadas** y paleta más suave.
+- **Ventana y diálogos redondeados** en Windows 11, con barra de título acorde al tema.
+- Cabecera reorganizada: título, **versión** y **chip del modo** con indicador de color.
+- Tooltips rediseñados y con esquinas suaves.
+- Sin cambios de funcionamiento: mismos comandos, modos y confirmaciones que en V.5.
+
+### Novedades V.5
 
 - Arranque en **modo normal** sin UAC automático.
 - Nuevo **selector de modo** en el pie: administrador ↔ normal.

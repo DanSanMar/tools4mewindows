@@ -20,7 +20,7 @@ Single-file Python Tkinter GUI for Windows system maintenance. The only source f
 
 ## Docs
 - `README.md` covers features and installation; `CONVERTIR_A_EXE.md` covers packaging; `PRUEBAS.md` is the manual checklist for validating a release on Windows. Keep them in sync when behavior changes.
-- The version is defined once in `VERSION` (`t4mw.py`) and used in the window title, header, and console banner. Current version: V.5. Keep the README badge in sync.
+- The version is defined once in `VERSION` (`t4mw.py`) and used in the window title, header, and console banner. Current version: V.5.1. Keep the README badge in sync.
 
 ## Gotchas
 - `LogoALL4meW.png` is tracked in git even though `.gitignore` lists it; `.gitignore` does not affect already-tracked files.
@@ -33,7 +33,8 @@ Single-file Python Tkinter GUI for Windows system maintenance. The only source f
 - Destructive confirmations (repair, restore point, Defender) use `default=messagebox.NO`; keep that default so Enter does not trigger an irreversible action. The recycle-bin option is an explicit checkbox, default off.
 - The top menu bar is a custom full-width grid with five equal-width tabs: Menubuttons for "Sistema"/"Más herramientas"/"Ayuda" plus top-level "Modo auto"/"Acerca de T4MW" buttons. Visual order is Modo auto, Sistema, Más herramientas, Acerca de T4MW, Ayuda; Ayuda stays rightmost. Tabs use a blue bar background with a 2px accent line. The native Tk menubar cannot align cascades to the right; do not reintroduce the footer tools button.
 - "Sistema" and the Windows utility entries in "Más herramientas" only launch built-in Windows utilities (`taskmgr`, `mmc` snap-ins, `resmon`) through `abrir_utilidad_windows()` using argument lists and no shell. Do not add registry editor or destructive commands there.
-- Main action buttons use a soft blue background plus a 1px frame border. `aplicar_tema()` must update both `frames_botones` (border) and `botones` (fill); keep light/dark contrast readable.
+- Main action buttons are `BotonRedondeado` (a Canvas that draws a rounded shape), not `tk.Button`: Tkinter has no native rounded corners. `aplicar_tema()` must update each button via `fondo` (container color seen in the corners), `bg` (fill), `fg`, `activebackground`, `activeforeground` and `borde`; keep light/dark contrast readable. Dialog buttons use `boton_dialogo()`.
+- Rounded window corners and a theme-matched title bar are applied by `aplicar_esquinas_windows()` through `DwmSetWindowAttribute`. It is best-effort: on Windows 10 or outside Windows the calls fail silently, so never make functionality depend on it.
 - "Modo auto" must stay limited to Winget update, quick cleanup, and quick diagnostic in one console; reuse `pasos_limpieza_rapida()`/`pasos_limpieza_usuario()` and `pasos_diagnostico_rapido()`. Do not add repair, recycle bin, complete cleanup, or complete diagnostic to it. Selecting the diagnostic makes the run request UAC once in normal mode.
 - The About dialog is a custom modal with buttons for the repository (`https://github.com/DanSanMar/tools4mewindows`) and the author profile (`https://github.com/DanSanMar`); both use `abrir_enlace()`. Keep both links and the MIT license text.
 - The main-window "Abrir Windows Update" button only opens Settings (`ms-settings:windowsupdate`); it does not install updates. Winget handles apps, not Windows.
